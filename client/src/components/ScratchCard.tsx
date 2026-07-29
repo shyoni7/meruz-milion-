@@ -23,8 +23,8 @@ interface ScratchCardProps {
   onRevealed: () => void;
 }
 
-const SCRATCH_RADIUS = 28;
-const REVEAL_THRESHOLD = 0.60; // 60% scratched = auto-reveal
+const SCRATCH_RADIUS = 60;
+const REVEAL_THRESHOLD = 0.45; // 45% scratched = auto-reveal (faster)
 
 export default function ScratchCard({ revealText, stationNumber, onRevealed }: ScratchCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
