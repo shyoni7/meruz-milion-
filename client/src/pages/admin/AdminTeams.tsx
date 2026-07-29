@@ -1,12 +1,31 @@
 import { trpc } from "@/lib/trpc";
 import { useAdmin } from "@/contexts/AdminContext";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminTeams() {
   const { token } = useAdmin();
-  const { data: teams, isLoading } = trpc.admin.getTeams.useQuery({ token: token ?? "" }, { enabled: !!token });
+  const utils = trpc.useUtils();
+  const { data: teams, isLoading } = trpc.admin.getTeams.useQuery(
+    { token: token ?? "" },
+    { enabled: !!token }
+  );
+
+  const deleteMutation = trpc.admin.deleteTeam.useMutation({
+    onSuccess: () => {
+      utils.admin.getTeams.invalidate();
+      toast.success("הקבוצה נמחקה");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleDelete = (id: number, name: string) => {
+    if (!window.confirm(`למחוק את הקבוצה "${name}" וכל התמונות שלה לצמיתות?`)) return;
+    deleteMutation.mutate({ token: token!, teamId: id });
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0f1e] text-white p-6" dir="rtl">
@@ -18,7 +37,7 @@ export default function AdminTeams() {
             </button>
           </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-6">קבוצות רשומות</h1>
+        <h1 className="text-2xl font-bold mb-6">קבוצות רשומות ({teams?.length ?? 0})</h1>
         {isLoading ? (
           <p className="text-gray-400">טוען...</p>
         ) : (
@@ -36,6 +55,16 @@ export default function AdminTeams() {
                   ) : (
                     <Badge variant="outline" className="border-[#c9a84c]/40 text-[#c9a84c]">בתהליך</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDelete(team.id, team.teamName)}
+                    disabled={deleteMutation.isPending}
+                    className="text-red-400/60 hover:text-red-400 hover:bg-red-900/20 h-8 w-8 p-0"
+                    title="מחק קבוצה"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -48,4 +77,3 @@ export default function AdminTeams() {
     </div>
   );
 }
-

@@ -13,6 +13,10 @@ import {
   updateStation,
   updateSubmissionStatus,
 } from "../db";
+import {
+  deleteSubmission,
+  deleteTeam,
+} from "../db";
 import { publicProcedure, router } from "../_core/trpc";
 
 const ADMIN_JWT_SECRET = new TextEncoder().encode(
@@ -172,5 +176,20 @@ export const adminRouter = router({
       await updateSubmissionStatus(input.submissionId, input.status, input.adminNote);
       return { success: true };
     }),
-});
 
+  deleteSubmission: publicProcedure
+    .input(z.object({ token: z.string(), submissionId: z.number() }))
+    .mutation(async ({ input }) => {
+      await requireAdmin(input.token);
+      await deleteSubmission(input.submissionId);
+      return { success: true };
+    }),
+
+  deleteTeam: publicProcedure
+    .input(z.object({ token: z.string(), teamId: z.number() }))
+    .mutation(async ({ input }) => {
+      await requireAdmin(input.token);
+      await deleteTeam(input.teamId);
+      return { success: true };
+    }),
+});

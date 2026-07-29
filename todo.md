@@ -27,6 +27,8 @@
 
 ## שלמו
 - [x] לוח מובילים (Leaderboard) בזמן אמת ב-Admin Panel — מציג תחנה נוכחית לכל קבוצה עם polling אוטומטי
+- [x] מחיקת תמונות (submissions) ב-Admin Panel
+- [x] מחיקת קבוצות (teams) ב-Admin Panel
 
 - [x] מסך פתיחה קולנועי
 - [x] כרטיס גירוד כסף עם צלילים

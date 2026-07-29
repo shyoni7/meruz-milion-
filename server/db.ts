@@ -13,6 +13,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { storageDelete } from "./storage";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -204,6 +205,27 @@ export async function updateSubmissionStatus(
     .update(submissions)
     .set({ status, adminNote: adminNote ?? null, reviewedAt: new Date() })
     .where(eq(submissions.id, id));
+}
+
+export async function deleteSubmission(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Delete S3 file first
+  const rows = await db.select({ imageKey: submissions.imageKey }).from(submissions).where(eq(submissions.id, id)).limit(1);
+  if (rows[0]?.imageKey) {
+    await storageDelete(rows[0].imageKey).catch(() => {});
+  }
+  await db.delete(submissions).where(eq(submissions.id, id));
+}
+
+export async function deleteTeam(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  // Delete S3 files for all team submissions first
+  const teamSubs = await db.select({ imageKey: submissions.imageKey }).from(submissions).where(eq(submissions.teamId, id));
+  await Promise.all(teamSubs.map((s) => storageDelete(s.imageKey).catch(() => {})));
+  await db.delete(submissions).where(eq(submissions.teamId, id));
+  await db.delete(teams).where(eq(teams.id, id));
 }
 
 // ─── Admin user queries ────────────────────────────────────────────────────

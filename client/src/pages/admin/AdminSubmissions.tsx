@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -24,6 +24,19 @@ export default function AdminSubmissions() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const deleteMutation = trpc.admin.deleteSubmission.useMutation({
+    onSuccess: () => {
+      utils.admin.getSubmissions.invalidate();
+      toast.success("התמונה נמחקה");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleDelete = (id: number) => {
+    if (!window.confirm("למחוק את התמונה לצמיתות?")) return;
+    deleteMutation.mutate({ token: token!, submissionId: id });
+  };
 
   const pending = submissions?.filter((s) => s.status === "pending") ?? [];
   const reviewed = submissions?.filter((s) => s.status !== "pending") ?? [];
@@ -84,6 +97,16 @@ export default function AdminSubmissions() {
                         <XCircle className="w-4 h-4 ml-1" />
                         דחה
                       </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleDelete(sub.id)}
+                        disabled={deleteMutation.isPending}
+                        className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/40"
+                        variant="ghost"
+                        title="מחק תמונה"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -102,9 +125,18 @@ export default function AdminSubmissions() {
                     <img src={sub.imageUrl} alt="submission" className="w-full h-32 object-cover rounded" />
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-500">קבוצה #{sub.teamId} | תחנה #{sub.stationId}</span>
-                      <Badge className={sub.status === "approved" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}>
-                        {sub.status === "approved" ? "אושר" : "נדחה"}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={sub.status === "approved" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}>
+                          {sub.status === "approved" ? "אושר" : "נדחה"}
+                        </Badge>
+                        <button
+                          onClick={() => handleDelete(sub.id)}
+                          className="text-red-400/60 hover:text-red-400 transition-colors"
+                          title="מחק"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -120,4 +152,3 @@ export default function AdminSubmissions() {
     </div>
   );
 }
-
