@@ -19,6 +19,7 @@ import TaskComplete from "@/components/screens/TaskComplete";
 import TryAgain from "@/components/screens/TryAgain";
 import FinishScreen from "@/components/screens/FinishScreen";
 import SplashScreen from "@/components/screens/SplashScreen";
+import ScratchScreen from "@/components/screens/ScratchScreen";
 
 // Screen transition variants — cinematic forward slide
 const screenVariants = {
@@ -87,6 +88,7 @@ export default function GamePage() {
         transition={screenTransition}
         style={{ position: "fixed", inset: 0 }}
       >
+        {currentScreen === "SCRATCH" && <ScratchScreen />}
         {currentScreen === "CLUE" && <ClueScreen />}
         {currentScreen === "TASK" && <TaskScreen />}
         {currentScreen === "CONTROL_ROOM" && <ControlRoom />}

@@ -20,6 +20,7 @@ import {
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 type GameAction =
+  | { type: "SCRATCH_REVEALED" }        // SCRATCH → CLUE
   | { type: "ADVANCE_SCREEN" }         // CLUE → TASK
   | { type: "GO_TO_CONTROL_ROOM" }     // TASK → CONTROL_ROOM
   | { type: "APPROVE_MISSION" }        // CONTROL_ROOM → COMPLETE
@@ -33,6 +34,11 @@ type GameAction =
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case "SCRATCH_REVEALED": {
+      // SCRATCH → CLUE
+      return { ...state, currentScreen: "CLUE" };
+    }
+
     case "ADVANCE_SCREEN": {
       // CLUE → TASK
       if (state.currentScreen === "CLUE") {
@@ -70,7 +76,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         currentStationIndex: nextIndex,
-        currentScreen: "CLUE",
+        currentScreen: "SCRATCH",
         hintsRevealed: 0,
       };
     }
@@ -100,6 +106,7 @@ interface GameContextValue {
   currentStation: (typeof stations)[0];
   dispatch: React.Dispatch<GameAction>;
   // Convenience helpers
+  scratchRevealed: () => void;
   advanceScreen: () => void;
   goToControlRoom: () => void;
   approveMission: () => void;
@@ -121,6 +128,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     state,
     currentStation,
     dispatch,
+    scratchRevealed: () => dispatch({ type: "SCRATCH_REVEALED" }),
     advanceScreen: () => dispatch({ type: "ADVANCE_SCREEN" }),
     goToControlRoom: () => dispatch({ type: "GO_TO_CONTROL_ROOM" }),
     approveMission: () => dispatch({ type: "APPROVE_MISSION" }),

@@ -116,6 +116,7 @@ export const stations: Station[] = [
 ];
 
 export type ScreenType =
+  | "SCRATCH"
   | "CLUE"
   | "TASK"
   | "CONTROL_ROOM"
@@ -131,7 +132,7 @@ export interface GameState {
 
 export const initialGameState: GameState = {
   currentStationIndex: 0,
-  currentScreen: "CLUE",
+  currentScreen: "SCRATCH",
   hintsRevealed: 0,
   isFinished: false,
 };
