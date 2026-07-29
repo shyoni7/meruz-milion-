@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle, Clock, Image, LogOut, MapPin, Users } from "lucide-react";
+import { CheckCircle, Clock, Image, LogOut, MapPin, RefreshCw, Trophy, Users } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
@@ -12,7 +12,7 @@ export default function AdminDashboard() {
 
   const { data: teams } = trpc.admin.getTeams.useQuery(
     { token: token! },
-    { enabled: !!token }
+    { enabled: !!token, refetchInterval: 10_000 }
   );
   const { data: stations } = trpc.admin.getStations.useQuery(
     { token: token! },
@@ -25,6 +25,14 @@ export default function AdminDashboard() {
 
   const finishedTeams = teams?.filter((t) => t.isFinished).length ?? 0;
   const pendingSubmissions = submissions?.filter((s) => s.status === "pending").length ?? 0;
+  const totalStations = stations?.length ?? 4;
+
+  // Sort teams for leaderboard: finished first, then by station index desc
+  const leaderboard = [...(teams ?? [])].sort((a, b) => {
+    if (a.isFinished && !b.isFinished) return -1;
+    if (!a.isFinished && b.isFinished) return 1;
+    return b.currentStationIndex - a.currentStationIndex;
+  });
 
   return (
     <div className="min-h-screen bg-[#0a0f1e] text-white" dir="rtl">
@@ -127,41 +135,83 @@ export default function AdminDashboard() {
         </div>
 
         {/* Teams Table */}
-        <Card className="bg-[#0d1526] border-[#c9a84c]/20">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">קבוצות רשומות</CardTitle>
+        {/* ─── LEADERBOARD ─────────────────────────────────────────────── */}
+        <Card className="bg-[#0d1526] border-[#c9a84c]/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-xl flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-[#c9a84c]" />
+                לוח מובילים — זמן אמת
+              </CardTitle>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <RefreshCw className="w-3 h-3 animate-spin" style={{ animationDuration: "3s" }} />
+                מתעדכן כל 10 שניות
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {!teams || teams.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">אין קבוצות רשומות עדיין</p>
+            {leaderboard.length === 0 ? (
+              <p className="text-gray-500 text-center py-10">אין קבוצות רשומות עדיין</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[#c9a84c]/20 text-gray-400">
-                      <th className="text-right py-2 px-3">שם קבוצה</th>
-                      <th className="text-right py-2 px-3">טלפון</th>
-                      <th className="text-right py-2 px-3">תחנה נוכחית</th>
-                      <th className="text-right py-2 px-3">סטטוס</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teams.map((team) => (
-                      <tr key={team.id} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="py-2 px-3 text-white font-medium">{team.teamName}</td>
-                        <td className="py-2 px-3 text-gray-300">{team.phone}</td>
-                        <td className="py-2 px-3 text-gray-300">תחנה {team.currentStationIndex + 1}</td>
-                        <td className="py-2 px-3">
-                          {team.isFinished ? (
-                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">סיים</Badge>
+              <div className="space-y-3">
+                {leaderboard.map((team, idx) => {
+                  const progress = team.isFinished
+                    ? 100
+                    : Math.round(((team.currentStationIndex) / totalStations) * 100);
+                  const stationLabel = team.isFinished
+                    ? "סיים את המירוץ! 🏆"
+                    : `תחנה ${team.currentStationIndex + 1} מתוך ${totalStations}`;
+
+                  const rankColors = ["text-yellow-400", "text-gray-300", "text-amber-600"];
+                  const rankEmojis = ["🥇", "🥈", "🥉"];
+
+                  return (
+                    <div
+                      key={team.id}
+                      className="rounded-xl border border-white/10 bg-[#0a0f1e]/60 p-4 hover:border-[#c9a84c]/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        {/* Rank */}
+                        <div className="w-8 text-center shrink-0">
+                          {idx < 3 ? (
+                            <span className="text-xl">{rankEmojis[idx]}</span>
                           ) : (
-                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">פעיל</Badge>
+                            <span className={`text-sm font-bold text-gray-500`}>#{idx + 1}</span>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+
+                        {/* Team info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-white truncate">{team.teamName}</span>
+                            <span className="text-xs text-gray-400 shrink-0 mr-2">{stationLabel}</span>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${progress}%`,
+                                background: team.isFinished
+                                  ? "linear-gradient(90deg, #22c55e, #16a34a)"
+                                  : "linear-gradient(90deg, #f5d78e, #c9a84c)",
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="shrink-0">
+                          {team.isFinished ? (
+                            <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 text-xs">סיים</Badge>
+                          ) : (
+                            <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs">פעיל</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -170,4 +220,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

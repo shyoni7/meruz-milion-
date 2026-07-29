@@ -26,6 +26,8 @@
 - [x] שמירת התקדמות קבוצה ב-DB
 
 ## שלמו
+- [x] לוח מובילים (Leaderboard) בזמן אמת ב-Admin Panel — מציג תחנה נוכחית לכל קבוצה עם polling אוטומטי
+
 - [x] מסך פתיחה קולנועי
 - [x] כרטיס גירוד כסף עם צלילים
 - [x] 6 תבניות מסכים (Clue, Task, HintCenter, ControlRoom, Complete, TryAgain)
