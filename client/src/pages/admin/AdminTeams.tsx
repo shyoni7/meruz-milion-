@@ -58,9 +58,9 @@ export default function AdminTeams() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => window.open(`/slideshow/${team.id}`, "_blank")}
+                    onClick={() => window.open("/slideshow", "_blank")}
                     className="text-[#c9a84c]/70 hover:text-[#c9a84c] hover:bg-[#c9a84c]/10 h-8 w-8 p-0"
-                    title="מצגת קבוצה"
+                    title="מצגת כל המשתתפים"
                   >
                     <Film className="w-4 h-4" />
                   </Button>

@@ -35,6 +35,12 @@
 - [x] Frontend: כפתור "צפה במצגת" ב-FinishScreen
 - [x] Admin: כפתור "מצגת קבוצה" ליד כל קבוצה ב-AdminTeams
 
+## מצגת כללית (שינוי)
+- [x] Backend: endpoint שמחזיר את כל התמונות מכל הקבוצות ממוינות לפי תחנות
+- [x] Frontend: עמוד /slideshow (ללא teamId) — מצגת כללית לפי תחנות
+- [x] Admin: כפתור "הפעל מצגת כללית" בלוח הבקרה
+- [x] FinishScreen: עדכון כפתור מצגת לנווט ל-/slideshow (ללא teamId)
+
 - [x] מסך פתיחה קולנועי
 - [x] כרטיס גירוד כסף עם צלילים
 - [x] 6 תבניות מסכים (Clue, Task, HintCenter, ControlRoom, Complete, TryAgain)

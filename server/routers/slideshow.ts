@@ -1,13 +1,47 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
-import { getTeamById, getAllStations } from "../db";
+import { getTeamById, getAllStations, getAllTeams } from "../db";
 import { getDb } from "../db";
 import { submissions } from "../../drizzle/schema";
 import { eq, asc } from "drizzle-orm";
 
 export const slideshowRouter = router({
-  // Get all data needed for the slideshow: team info, submissions with station data, and LLM captions
+  // ─── Global slideshow: all photos from all teams, grouped by station ────────
+  getAllSlideshowData: publicProcedure.query(async () => {
+    const [allStations, allTeams] = await Promise.all([
+      getAllStations(),
+      getAllTeams(),
+    ]);
+
+    const db = await getDb();
+    const allSubmissions = db
+      ? await db.select().from(submissions).orderBy(asc(submissions.stationId))
+      : [];
+
+    // Build lookup maps
+    const stationMap = new Map(allStations.map((s) => [s.id, s]));
+    const teamMap = new Map(allTeams.map((t) => [t.id, t]));
+
+    // Enrich each submission with station + team info
+    const enriched = allSubmissions.map((sub) => ({
+      ...sub,
+      station: stationMap.get(sub.stationId) ?? null,
+      team: teamMap.get(sub.teamId) ?? null,
+    }));
+
+    // Sort by station orderIndex, then by submittedAt within same station
+    enriched.sort((a, b) => {
+      const aOrder = a.station?.orderIndex ?? 0;
+      const bOrder = b.station?.orderIndex ?? 0;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+    });
+
+    return { submissions: enriched, stations: allStations };
+  }),
+
+  // ─── Per-team slideshow (legacy, kept for admin use) ────────────────────────
   getSlideshowData: publicProcedure
     .input(z.object({ teamId: z.number() }))
     .query(async ({ input }) => {

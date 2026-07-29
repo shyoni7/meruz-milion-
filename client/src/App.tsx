@@ -29,7 +29,7 @@ function Router() {
       <Route path={"/admin/stations"} component={() => <AdminGuard component={AdminStations} />} />
       <Route path={"/admin/submissions"} component={() => <AdminGuard component={AdminSubmissions} />} />
       <Route path={"/admin/teams"} component={() => <AdminGuard component={AdminTeams} />} />
-      <Route path={"/slideshow/:teamId"} component={SlideshowPage} />
+      <Route path={"/slideshow"} component={SlideshowPage} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

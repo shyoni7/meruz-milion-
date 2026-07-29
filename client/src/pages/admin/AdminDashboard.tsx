@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle, Clock, Image, LogOut, MapPin, RefreshCw, Trophy, Users } from "lucide-react";
+import { CheckCircle, Clock, Film, Image, LogOut, MapPin, RefreshCw, Trophy, Users } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <button
             onClick={() => setLocation("/admin/stations")}
             className="p-6 rounded-xl border border-[#c9a84c]/30 bg-[#0d1526]/80 hover:border-[#c9a84c] hover:bg-[#0d1526] transition-all text-right group"
@@ -122,15 +122,23 @@ export default function AdminDashboard() {
             className="p-6 rounded-xl border border-[#c9a84c]/30 bg-[#0d1526]/80 hover:border-[#c9a84c] hover:bg-[#0d1526] transition-all text-right group"
           >
             <Image className="w-10 h-10 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-bold text-white mb-1">אישור תמונות</h3>
-            <p className="text-sm text-gray-400">
-              בדוק ואשר תמונות שהועלו
-              {pendingSubmissions > 0 && (
-                <span className="mr-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-black text-xs font-bold">
-                  {pendingSubmissions}
+          <h3 className="text-lg font-bold text-white mb-1">אישור תמונות</h3>
+          <p className="text-sm text-gray-400">
+            בדוק ואשר תמונות שהועלו
+            {pendingSubmissions > 0 && (
+              <span className="mr-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500 text-black text-xs font-bold">
+                {pendingSubmissions}
                 </span>
               )}
             </p>
+          </button>
+          <button
+            onClick={() => window.open("/slideshow", "_blank")}
+            className="p-6 rounded-xl border border-[#c9a84c]/50 bg-[#0d1526]/80 hover:border-[#c9a84c] hover:bg-[#c9a84c]/10 transition-all text-right group"
+          >
+            <Film className="w-10 h-10 text-[#c9a84c] mb-3 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-bold text-[#c9a84c] mb-1">הפעל מצגת כללית</h3>
+            <p className="text-sm text-gray-400">מצגת כל המשתתפים לפי תחנות</p>
           </button>
         </div>
 

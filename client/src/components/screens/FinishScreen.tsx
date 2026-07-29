@@ -101,17 +101,15 @@ export default function FinishScreen() {
           </p>
         </motion.div>
 
-        {teamId && (
-          <motion.button
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.2 }}
-            onClick={() => setLocation(`/slideshow/${teamId}`)}
-            className="w-full py-4 rounded-2xl bg-[#c9a84c] text-[#0a0f1e] font-bold text-lg flex items-center justify-center gap-2 hover:bg-[#d4b55a] active:scale-[0.97] transition-all shadow-lg shadow-[#c9a84c]/30"
-          >
-            🎬 צפו במצגת שלכם
-          </motion.button>
-        )}
+        <motion.button
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1.2 }}
+          onClick={() => setLocation("/slideshow")}
+          className="w-full py-4 rounded-2xl bg-[#c9a84c] text-[#0a0f1e] font-bold text-lg flex items-center justify-center gap-2 hover:bg-[#d4b55a] active:scale-[0.97] transition-all shadow-lg shadow-[#c9a84c]/30"
+        >
+          🎬 צפו במצגת כל המשתתפים
+        </motion.button>
       </div>
     </div>
   );
