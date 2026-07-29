@@ -3,7 +3,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { ArrowRight, Film, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminTeams() {
@@ -55,6 +55,15 @@ export default function AdminTeams() {
                   ) : (
                     <Badge variant="outline" className="border-[#c9a84c]/40 text-[#c9a84c]">בתהליך</Badge>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => window.open(`/slideshow/${team.id}`, "_blank")}
+                    className="text-[#c9a84c]/70 hover:text-[#c9a84c] hover:bg-[#c9a84c]/10 h-8 w-8 p-0"
+                    title="מצגת קבוצה"
+                  >
+                    <Film className="w-4 h-4" />
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"

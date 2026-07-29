@@ -8,12 +8,17 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
+import { useLocation } from "wouter";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/logo-70-3mbXKeQKDaBD2zfByZ2EMA.webp";
 const BG_SUCCESS = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/bg-success-iGeqHPygneH9kHBLgKfVBi.webp";
 
 export default function FinishScreen() {
   const confettiFired = useRef(false);
+  const [, setLocation] = useLocation();
+
+  // Read teamId from localStorage (set during registration)
+  const teamId = typeof window !== "undefined" ? localStorage.getItem("teamId") : null;
 
   useEffect(() => {
     if (confettiFired.current) return;
@@ -95,8 +100,19 @@ export default function FinishScreen() {
             ❤️ אוהבים אותך
           </p>
         </motion.div>
+
+        {teamId && (
+          <motion.button
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.2 }}
+            onClick={() => setLocation(`/slideshow/${teamId}`)}
+            className="w-full py-4 rounded-2xl bg-[#c9a84c] text-[#0a0f1e] font-bold text-lg flex items-center justify-center gap-2 hover:bg-[#d4b55a] active:scale-[0.97] transition-all shadow-lg shadow-[#c9a84c]/30"
+          >
+            🎬 צפו במצגת שלכם
+          </motion.button>
+        )}
       </div>
     </div>
   );
 }
-
