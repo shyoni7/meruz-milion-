@@ -1,29 +1,43 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { invokeLLM } from "../_core/llm";
-import { getTeamById, getSubmissionsByTeam, getAllStations } from "../db";
+import { getTeamById, getAllStations } from "../db";
+import { getDb } from "../db";
+import { submissions } from "../../drizzle/schema";
+import { eq, asc } from "drizzle-orm";
 
 export const slideshowRouter = router({
   // Get all data needed for the slideshow: team info, submissions with station data, and LLM captions
   getSlideshowData: publicProcedure
     .input(z.object({ teamId: z.number() }))
     .query(async ({ input }) => {
-      const [team, allSubmissions, allStations] = await Promise.all([
+      const [team, allStations] = await Promise.all([
         getTeamById(input.teamId),
-        getSubmissionsByTeam(input.teamId),
         getAllStations(),
       ]);
 
       if (!team) throw new Error("Team not found");
 
+      // Fetch submissions sorted by stationId (orderIndex via join)
+      const db = await getDb();
+      const allSubmissions = db
+        ? await db
+            .select()
+            .from(submissions)
+            .where(eq(submissions.teamId, input.teamId))
+            .orderBy(asc(submissions.stationId))
+        : [];
+
       // Build a map of stationId -> station for quick lookup
       const stationMap = new Map(allStations.map((s) => [s.id, s]));
 
-      // Enrich submissions with station info
-      const enrichedSubmissions = allSubmissions.map((sub) => ({
-        ...sub,
-        station: stationMap.get(sub.stationId) ?? null,
-      }));
+      // Enrich submissions with station info, sorted by station orderIndex
+      const enrichedSubmissions = allSubmissions
+        .map((sub) => ({
+          ...sub,
+          station: stationMap.get(sub.stationId) ?? null,
+        }))
+        .sort((a, b) => (a.station?.orderIndex ?? 0) - (b.station?.orderIndex ?? 0));
 
       return { team, submissions: enrichedSubmissions };
     }),
@@ -52,7 +66,7 @@ ${input.stationTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")}
         const res = await invokeLLM({
           model: "gpt-5-mini",
           messages: [{ role: "user", content: prompt }],
-          response_format: {
+          responseFormat: {
             type: "json_schema",
             json_schema: {
               name: "captions",
@@ -73,8 +87,9 @@ ${input.stationTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")}
         });
 
         const content = (res.choices[0]?.message?.content as string) ?? "{}";
-        const parsed = JSON.parse(content) as { captions: string[] };
-        return { captions: parsed.captions };
+        const parsed = JSON.parse(content) as { captions?: string[] };
+        const captions = Array.isArray(parsed.captions) ? parsed.captions : [];
+        return { captions };
       } catch (err) {
         console.error("[Slideshow] LLM caption generation failed:", err);
         // Fallback captions

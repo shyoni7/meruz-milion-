@@ -29,11 +29,11 @@
 - [x] לוח מובילים (Leaderboard) בזמן אמת ב-Admin Panel — מציג תחנה נוכחית לכל קבוצה עם polling אוטומטי
 - [x] מחיקת תמונות (submissions) ב-Admin Panel
 - [x] מחיקת קבוצות (teams) ב-Admin Panel
-- [ ] Backend: tRPC endpoint ליצירת הערות שנונות עם LLM לכל תחנה
-- [ ] Backend: endpoint לאיסוף כל תמונות הקבוצה ממוינות לפי תחנה
-- [ ] Frontend: עמוד /slideshow/:teamId עם Canvas slideshow אנימטי
-- [ ] Frontend: כפתור "צפה במצגת" ב-FinishScreen
-- [ ] Admin: כפתור "מצגת קבוצה" ליד כל קבוצה ב-AdminTeams
+- [x] Backend: tRPC endpoint ליצירת הערות שנונות עם LLM לכל תחנה
+- [x] Backend: endpoint לאיסוף כל תמונות הקבוצה ממוינות לפי תחנה
+- [x] Frontend: עמוד /slideshow/:teamId עם Canvas slideshow אנימטי
+- [x] Frontend: כפתור "צפה במצגת" ב-FinishScreen
+- [x] Admin: כפתור "מצגת קבוצה" ליד כל קבוצה ב-AdminTeams
 
 - [x] מסך פתיחה קולנועי
 - [x] כרטיס גירוד כסף עם צלילים
