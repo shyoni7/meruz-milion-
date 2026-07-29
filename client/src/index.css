@@ -40,77 +40,63 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* HaMerutz L-70 Brand Tokens */
+  --color-navy: var(--navy);
+  --color-navy-mid: var(--navy-mid);
+  --color-navy-light: var(--navy-light);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dim: var(--gold-dim);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
-}
+  /* HaMerutz L-70 Brand Colors */
+  --navy: oklch(0.13 0.03 250);
+  --navy-mid: oklch(0.16 0.025 250);
+  --navy-light: oklch(0.21 0.025 250);
+  --gold: oklch(0.72 0.12 75);
+  --gold-light: oklch(0.85 0.14 80);
+  --gold-dim: oklch(0.72 0.12 75 / 0.15);
+  --glass-bg: oklch(1 0 0 / 0.04);
+  --glass-border: oklch(0.72 0.12 75 / 0.2);
 
-.dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Semantic Tokens — Dark Theme */
+  --radius: 0.75rem;
+  --background: oklch(0.13 0.03 250);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.16 0.025 250);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.16 0.025 250);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.72 0.12 75);
+  --primary-foreground: oklch(0.13 0.03 250);
+  --secondary: oklch(0.21 0.025 250);
+  --secondary-foreground: oklch(0.85 0 0);
+  --muted: oklch(0.21 0.025 250);
+  --muted-foreground: oklch(0.65 0.01 250);
+  --accent: oklch(0.72 0.12 75 / 0.15);
+  --accent-foreground: oklch(0.72 0.12 75);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.97 0 0);
+  --border: oklch(1 0 0 / 0.08);
+  --input: oklch(1 0 0 / 0.1);
+  --ring: oklch(0.72 0.12 75 / 0.5);
+  --sidebar: oklch(0.16 0.025 250);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.72 0.12 75);
+  --sidebar-primary-foreground: oklch(0.13 0.03 250);
+  --sidebar-accent: oklch(0.21 0.025 250);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(1 0 0 / 0.08);
+  --sidebar-ring: oklch(0.72 0.12 75 / 0.5);
+  --chart-1: oklch(0.72 0.12 75);
+  --chart-2: oklch(0.85 0.14 80);
+  --chart-3: oklch(0.6 0.1 75);
+  --chart-4: oklch(0.5 0.08 75);
+  --chart-5: oklch(0.4 0.06 75);
 }
 
 @layer base {
@@ -119,6 +105,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Heebo', sans-serif;
+    direction: rtl;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -134,24 +122,11 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
 
@@ -162,16 +137,173 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
+  }
+
+  /* ── HaMerutz L-70 Utility Classes ── */
+
+  /* Full-viewport game screen */
+  .game-screen {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--navy);
+  }
+
+  /* Glass card with gold border */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+  }
+
+  /* Gold glow effect */
+  .gold-glow {
+    box-shadow: 0 0 30px oklch(0.72 0.12 75 / 0.3), 0 0 60px oklch(0.72 0.12 75 / 0.1);
+  }
+
+  /* Gold text */
+  .text-gold {
+    color: var(--gold);
+  }
+
+  .text-gold-light {
+    color: var(--gold-light);
+  }
+
+  /* Playfair Display font */
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* Primary gold button */
+  .btn-gold {
+    background: linear-gradient(135deg, oklch(0.72 0.12 75), oklch(0.65 0.1 70));
+    color: oklch(0.13 0.03 250);
+    font-family: 'Heebo', sans-serif;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    width: 100%;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 4px 20px oklch(0.72 0.12 75 / 0.35);
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-gold:hover {
+    box-shadow: 0 6px 28px oklch(0.72 0.12 75 / 0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-gold:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 12px oklch(0.72 0.12 75 / 0.3);
+  }
+
+  /* Secondary outline button */
+  .btn-outline-gold {
+    background: transparent;
+    color: var(--gold);
+    font-family: 'Heebo', sans-serif;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--glass-border);
+    width: 100%;
+    transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-outline-gold:hover {
+    background: var(--gold-dim);
+    border-color: oklch(0.72 0.12 75 / 0.5);
+  }
+
+  .btn-outline-gold:active {
+    transform: scale(0.97);
+  }
+
+  /* Gold rule line */
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.4;
+  }
+
+  /* Station badge */
+  .station-badge {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--gold);
+    background: var(--gold-dim);
+    flex-shrink: 0;
+  }
+
+  /* Approved stamp */
+  .approved-stamp {
+    border: 3px solid oklch(0.65 0.2 145);
+    border-radius: 0.5rem;
+    padding: 0.25rem 1rem;
+    color: oklch(0.65 0.2 145);
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-size: 1.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transform: rotate(-8deg);
+    display: inline-block;
+    opacity: 0.9;
+    text-shadow: 0 0 20px oklch(0.65 0.2 145 / 0.4);
+    box-shadow: 0 0 20px oklch(0.65 0.2 145 / 0.2), inset 0 0 10px oklch(0.65 0.2 145 / 0.1);
+  }
+
+  /* Gold pulse animation for success */
+  @keyframes gold-pulse {
+    0%, 100% { box-shadow: 0 0 20px oklch(0.72 0.12 75 / 0.3); }
+    50% { box-shadow: 0 0 50px oklch(0.72 0.12 75 / 0.7), 0 0 80px oklch(0.72 0.12 75 / 0.3); }
+  }
+
+  .animate-gold-pulse {
+    animation: gold-pulse 2s ease-in-out 2;
+  }
+
+  /* Hint reveal animation */
+  @keyframes hint-reveal {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-hint-reveal {
+    animation: hint-reveal 300ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
   }
 }
