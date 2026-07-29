@@ -42,14 +42,15 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Metallic gold/silver gradient
+    // Metallic SILVER gradient
     const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    grad.addColorStop(0,   "#b8922a");
-    grad.addColorStop(0.2, "#e8c84a");
-    grad.addColorStop(0.4, "#f5e070");
-    grad.addColorStop(0.6, "#c9a227");
-    grad.addColorStop(0.8, "#e8c84a");
-    grad.addColorStop(1,   "#9a7a1e");
+    grad.addColorStop(0,   "#8a8a8a");
+    grad.addColorStop(0.15, "#d0d0d0");
+    grad.addColorStop(0.3, "#f0f0f0");
+    grad.addColorStop(0.5, "#c8c8c8");
+    grad.addColorStop(0.65, "#e8e8e8");
+    grad.addColorStop(0.8, "#b0b0b0");
+    grad.addColorStop(1,   "#787878");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -63,13 +64,13 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
     }
 
     // "גרדו כאן" instruction text
-    ctx.fillStyle = "rgba(10, 20, 50, 0.7)";
+    ctx.fillStyle = "rgba(30, 30, 30, 0.75)";
     ctx.font = "bold 22px 'Heebo', sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("🪙 גרדו כאן לגלות את הרמז", canvas.width / 2, canvas.height / 2 - 16);
     ctx.font = "16px 'Heebo', sans-serif";
-    ctx.fillStyle = "rgba(10, 20, 50, 0.5)";
+    ctx.fillStyle = "rgba(30, 30, 30, 0.5)";
     ctx.fillText("הניחו אצבע וגררו", canvas.width / 2, canvas.height / 2 + 16);
   }, []);
 
@@ -114,7 +115,7 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
       setIsRevealed(true);
       // Play success fanfare immediately on reveal
       playSuccess();
-      // Clear canvas fully for clean reveal
+      // Clear canvas fully for clean final reveal
       const c = canvasRef.current;
       if (c) {
         const cx = c.getContext("2d");
@@ -200,30 +201,13 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
             border: "1px solid oklch(0.72 0.12 75 / 0.3)",
           }}
         >
-          <AnimatePresence>
-            {isRevealed && (
-              <motion.div
-                className="text-center"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-              >
-                <div className="text-gold text-2xl mb-2">✨</div>
-                <p className="text-white font-display text-lg font-semibold leading-snug" dir="rtl">
-                  {revealText}
-                </p>
-              </motion.div>
-            )}
-            {!isRevealed && (
-              <motion.div
-                className="text-center opacity-30"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.3 }}
-              >
-                <div className="text-gold text-4xl">🔒</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Clue text always rendered beneath — revealed progressively as canvas is scratched */}
+          <div className="text-center px-2" dir="rtl">
+            <div className="text-gold text-2xl mb-3">✨</div>
+            <p className="text-white font-display text-xl font-bold leading-relaxed drop-shadow-lg">
+              {revealText}
+            </p>
+          </div>
         </div>
 
         {/* Scratch canvas (on top) */}
