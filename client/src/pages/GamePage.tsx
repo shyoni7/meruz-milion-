@@ -86,6 +86,17 @@ export default function GamePage() {
     );
   }
 
+  // Show register screen FIRST if no team registered yet (before splash)
+  if (!teamId && !gameStarted) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div key="register" variants={screenVariants} initial="initial" animate="animate" exit="exit" transition={screenTransition} style={{ position: "fixed", inset: 0 }}>
+          <RegisterScreen onRegistered={handleRegistered} />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   if (!gameStarted) {
     return (
       <AnimatePresence mode="wait">

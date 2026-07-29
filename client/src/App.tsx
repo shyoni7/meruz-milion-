@@ -11,6 +11,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStations from "./pages/admin/AdminStations";
 import AdminSubmissions from "./pages/admin/AdminSubmissions";
+import AdminTeams from "./pages/admin/AdminTeams";
 
 function AdminGuard({ component: Component }: { component: React.ComponentType }) {
   const { isLoggedIn } = useAdmin();
@@ -26,6 +27,7 @@ function Router() {
       <Route path={"/admin"} component={() => <AdminGuard component={AdminDashboard} />} />
       <Route path={"/admin/stations"} component={() => <AdminGuard component={AdminStations} />} />
       <Route path={"/admin/submissions"} component={() => <AdminGuard component={AdminSubmissions} />} />
+      <Route path={"/admin/teams"} component={() => <AdminGuard component={AdminTeams} />} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
