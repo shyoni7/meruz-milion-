@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useScratchAudio } from "@/hooks/useScratchAudio";
 
 interface ScratchCardProps {
   /** Text to reveal beneath the scratch layer */
@@ -32,6 +33,7 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
   const [scratchPercent, setScratchPercent] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const revealedRef = useRef(false);
+  const { playScratch, playSuccess } = useScratchAudio();
 
   // Draw the metallic scratch layer on mount
   useEffect(() => {
@@ -100,6 +102,9 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
     ctx.fill();
     ctx.globalCompositeOperation = "source-over";
 
+    // Play scratch sound on every drag move
+    playScratch();
+
     // Sample every few moves to avoid perf hit
     const pct = calcScratchPercent();
     setScratchPercent(pct);
@@ -107,6 +112,8 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
     if (pct >= REVEAL_THRESHOLD && !revealedRef.current) {
       revealedRef.current = true;
       setIsRevealed(true);
+      // Play success fanfare immediately on reveal
+      playSuccess();
       // Clear canvas fully for clean reveal
       const c = canvasRef.current;
       if (c) {
@@ -115,7 +122,7 @@ export default function ScratchCard({ revealText, stationNumber, onRevealed }: S
       }
       setTimeout(onRevealed, 1200);
     }
-  }, [calcScratchPercent, onRevealed]);
+  }, [calcScratchPercent, onRevealed, playScratch, playSuccess]);
 
   // Convert client coords → canvas coords
   const getCanvasPos = (clientX: number, clientY: number) => {
