@@ -1,0 +1,109 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
+  createTeam,
+  getActiveStations,
+  getStationById,
+  getSubmissionsByTeam,
+  getTeamById,
+  markTeamFinished,
+  updateTeamProgress,
+} from "../db";
+import { storagePut } from "../storage";
+import { publicProcedure, router } from "../_core/trpc";
+
+export const gameRouter = router({
+  // Register a new team (name + phone)
+  registerTeam: publicProcedure
+    .input(z.object({ teamName: z.string().min(2).max(100), phone: z.string().min(9).max(20) }))
+    .mutation(async ({ input }) => {
+      await createTeam({ teamName: input.teamName, phone: input.phone });
+      // Return team by re-querying (insertId not directly returned by drizzle mysql2)
+      // We'll store teamId in localStorage on client side after registration
+      return { success: true };
+    }),
+
+  // Register team and get back the team id
+  registerTeamWithId: publicProcedure
+    .input(z.object({ teamName: z.string().min(2).max(100), phone: z.string().min(9).max(20) }))
+    .mutation(async ({ input }) => {
+      const { getDb } = await import("../db");
+      const { teams } = await import("../../drizzle/schema");
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
+      const result = await db.insert(teams).values({ teamName: input.teamName, phone: input.phone });
+      const insertId = (result as unknown as [{ insertId: number }])[0]?.insertId;
+      return { teamId: insertId as number };
+    }),
+
+  // Get all active stations (public — no auth needed)
+  getStations: publicProcedure.query(async () => {
+    return getActiveStations();
+  }),
+
+  // Get a single station by id
+  getStation: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const station = await getStationById(input.id);
+      if (!station) throw new TRPCError({ code: "NOT_FOUND", message: "Station not found" });
+      return station;
+    }),
+
+  // Get team progress
+  getTeam: publicProcedure
+    .input(z.object({ teamId: z.number() }))
+    .query(async ({ input }) => {
+      const team = await getTeamById(input.teamId);
+      if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+      return team;
+    }),
+
+  // Advance team to next station
+  advanceStation: publicProcedure
+    .input(z.object({ teamId: z.number(), nextIndex: z.number() }))
+    .mutation(async ({ input }) => {
+      await updateTeamProgress(input.teamId, input.nextIndex);
+      return { success: true };
+    }),
+
+  // Mark team as finished
+  finishGame: publicProcedure
+    .input(z.object({ teamId: z.number() }))
+    .mutation(async ({ input }) => {
+      await markTeamFinished(input.teamId);
+      return { success: true };
+    }),
+
+  // Upload photo for a station task
+  uploadPhoto: publicProcedure
+    .input(
+      z.object({
+        teamId: z.number(),
+        stationId: z.number(),
+        imageBase64: z.string(),
+        mimeType: z.string().default("image/jpeg"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { createSubmission } = await import("../db");
+      const buffer = Buffer.from(input.imageBase64, "base64");
+      const key = `submissions/team-${input.teamId}/station-${input.stationId}-${Date.now()}.jpg`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      await createSubmission({
+        teamId: input.teamId,
+        stationId: input.stationId,
+        imageUrl: url,
+        imageKey: key,
+      });
+      return { success: true, imageUrl: url };
+    }),
+
+  // Get submissions for a team
+  getTeamSubmissions: publicProcedure
+    .input(z.object({ teamId: z.number() }))
+    .query(async ({ input }) => {
+      return getSubmissionsByTeam(input.teamId);
+    }),
+});
+

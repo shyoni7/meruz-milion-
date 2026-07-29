@@ -16,6 +16,8 @@ import { motion } from "framer-motion";
 import { Navigation, Lightbulb, Camera } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import HintCenter from "./HintCenter";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // Placeholder gradient backgrounds per station (used until real images are approved)
 const STATION_GRADIENTS: Record<string, string> = {
@@ -28,6 +30,50 @@ const STATION_GRADIENTS: Record<string, string> = {
 export default function TaskScreen() {
   const { currentStation, goToControlRoom } = useGame();
   const [showHints, setShowHints] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Get teamId from localStorage
+  const teamId = parseInt(localStorage.getItem("hamerutz_team_id") ?? "0", 10);
+
+  const uploadMutation = trpc.game.uploadPhoto.useMutation({
+    onSuccess: () => {
+      toast.success("התמונה הועלתה בהצלחה! 📸");
+      goToControlRoom();
+    },
+    onError: (err) => {
+      toast.error("שגיאה בהעלאת התמונה, נסו שוב");
+      setUploading(false);
+    },
+  });
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      setPhotoPreview(reader.result as string);
+      setUploading(true);
+      uploadMutation.mutate({
+        teamId: teamId || 0,
+        stationId: currentStation.number,
+        imageBase64: base64,
+        mimeType: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendPhoto = () => {
+    if (!teamId) {
+      // No team registered — go directly to control room (fallback)
+      goToControlRoom();
+      return;
+    }
+    // Trigger file input
+    document.getElementById("photo-input")?.click();
+  };
 
   const gradient = STATION_GRADIENTS[currentStation.image] ||
     "linear-gradient(135deg, oklch(0.18 0.04 250), oklch(0.13 0.03 250))";
@@ -120,12 +166,26 @@ export default function TaskScreen() {
               </button>
 
               {/* Send photo button */}
+              <input
+                id="photo-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoCapture}
+              />
+              {photoPreview && (
+                <div className="rounded-xl overflow-hidden border border-[#c9a84c]/30">
+                  <img src={photoPreview} alt="תצוגה מקדימה" className="w-full h-32 object-cover" />
+                </div>
+              )}
               <button
                 className="btn-gold flex items-center justify-center gap-2"
-                onClick={goToControlRoom}
+                onClick={handleSendPhoto}
+                disabled={uploading}
               >
                 <Camera size={16} />
-                שלח תמונה להפקה
+                {uploading ? "מעלה תמונה..." : "צלם ושלח תמונה"}
               </button>
             </motion.div>
           </div>

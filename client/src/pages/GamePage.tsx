@@ -10,7 +10,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGame } from "@/contexts/GameContext";
 import ClueScreen from "@/components/screens/ClueScreen";
 import TaskScreen from "@/components/screens/TaskScreen";
@@ -20,6 +20,8 @@ import TryAgain from "@/components/screens/TryAgain";
 import FinishScreen from "@/components/screens/FinishScreen";
 import SplashScreen from "@/components/screens/SplashScreen";
 import ScratchScreen from "@/components/screens/ScratchScreen";
+import RegisterScreen from "@/components/screens/RegisterScreen";
+import { trpc } from "@/lib/trpc";
 
 // Screen transition variants — cinematic forward slide
 const screenVariants = {
@@ -37,9 +39,52 @@ export default function GamePage() {
   const { state } = useGame();
   const { currentScreen, currentStationIndex, isFinished } = state;
   const [gameStarted, setGameStarted] = useState(false);
+  const [teamId, setTeamId] = useState<number | null>(() => {
+    const saved = localStorage.getItem("hamerutz_team_id");
+    return saved ? parseInt(saved, 10) : null;
+  });
+  const [teamName, setTeamName] = useState<string>(() => localStorage.getItem("hamerutz_team_name") ?? "");
+  const [showRegister, setShowRegister] = useState(false);
+
+  const advanceStation = trpc.game.advanceStation.useMutation();
+  const finishGame = trpc.game.finishGame.useMutation();
 
   // Unique key for AnimatePresence — changes on screen or station change
   const screenKey = `${currentStationIndex}-${currentScreen}`;
+
+  // Sync station progress to DB when station changes
+  useEffect(() => {
+    if (teamId && gameStarted && currentStationIndex > 0) {
+      advanceStation.mutate({ teamId, nextIndex: currentStationIndex });
+    }
+  }, [currentStationIndex]);
+
+  // Sync finish to DB
+  useEffect(() => {
+    if (teamId && isFinished) {
+      finishGame.mutate({ teamId });
+    }
+  }, [isFinished]);
+
+  const handleRegistered = (id: number, name: string) => {
+    setTeamId(id);
+    setTeamName(name);
+    localStorage.setItem("hamerutz_team_id", id.toString());
+    localStorage.setItem("hamerutz_team_name", name);
+    setShowRegister(false);
+    setGameStarted(true);
+  };
+
+  // Show register screen before splash (if not already registered)
+  if (showRegister) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div key="register" variants={screenVariants} initial="initial" animate="animate" exit="exit" transition={screenTransition} style={{ position: "fixed", inset: 0 }}>
+          <RegisterScreen onRegistered={handleRegistered} />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   if (!gameStarted) {
     return (
@@ -53,7 +98,13 @@ export default function GamePage() {
           transition={screenTransition}
           style={{ position: "fixed", inset: 0 }}
         >
-          <SplashScreen onStart={() => setGameStarted(true)} />
+          <SplashScreen onStart={() => {
+            if (!teamId) {
+              setShowRegister(true);
+            } else {
+              setGameStarted(true);
+            }
+          }} />
         </motion.div>
       </AnimatePresence>
     );
