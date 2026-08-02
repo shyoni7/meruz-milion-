@@ -1,10 +1,10 @@
 import "dotenv/config";
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "../server/_core/oauth";
-import { registerStorageProxy } from "../server/_core/storageProxy";
-import { appRouter } from "../server/routers";
-import { createContext } from "../server/_core/context";
+import { registerOAuthRoutes } from "./_core/oauth";
+import { registerStorageProxy } from "./_core/storageProxy";
+import { appRouter } from "./routers";
+import { createContext } from "./_core/context";
 import path from "path";
 import fs from "fs";
 import * as bcrypt from "bcryptjs";
@@ -55,12 +55,20 @@ app.use(
   })
 );
 
-// Serve static frontend in production
+// Serve static frontend when running as a standalone server (pnpm start).
+// On Vercel the CDN serves dist/public directly, so this block is skipped.
 const distPath = path.resolve(process.cwd(), "dist", "public");
-if (fs.existsSync(distPath)) {
+if (!process.env.VERCEL && fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
+  });
+}
+
+if (!process.env.VERCEL) {
+  const port = Number(process.env.PORT ?? 3000);
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
   });
 }
 

@@ -3,18 +3,22 @@
   "buildCommand": "pnpm install && pnpm build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
+    "api/index.mjs": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.mjs"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/index.ts"
+      "source": "/manus-storage/(.*)",
+      "destination": "/api/index.mjs"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ]
 }
