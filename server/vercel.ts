@@ -78,6 +78,17 @@ app.use(async (_req, _res, next) => {
 registerStorageProxy(app);
 registerOAuthRoutes(app);
 
+// Configuration health check — booleans only, no secrets exposed.
+app.get("/api/health", (_req, res) => {
+  res.json({
+    database: Boolean(process.env.DATABASE_URL),
+    blobStorage: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    jwtSecret: Boolean(process.env.JWT_SECRET),
+    adminSeed: Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+  });
+});
+
 // tRPC API
 app.use(
   "/api/trpc",
