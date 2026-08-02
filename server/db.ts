@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/neon-http";
 import {
   adminUsers,
   InsertAdminUser,
@@ -80,7 +80,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -145,7 +146,7 @@ export async function deleteStation(id: number) {
 export async function createTeam(data: InsertTeam) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(teams).values(data);
+  const result = await db.insert(teams).values(data).returning();
   return result[0];
 }
 

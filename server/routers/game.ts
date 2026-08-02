@@ -31,9 +31,12 @@ export const gameRouter = router({
       const { teams } = await import("../../drizzle/schema");
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB not available" });
-      const result = await db.insert(teams).values({ teamName: input.teamName, phone: input.phone });
-      const insertId = (result as unknown as [{ insertId: number }])[0]?.insertId;
-      return { teamId: insertId as number };
+      const [created] = await db
+        .insert(teams)
+        .values({ teamName: input.teamName, phone: input.phone })
+        .returning({ id: teams.id });
+      if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create team" });
+      return { teamId: created.id };
     }),
 
   // Get all active stations (public — no auth needed)
