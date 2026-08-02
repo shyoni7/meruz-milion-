@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs";
 import * as bcrypt from "bcryptjs";
 import { migrate } from "drizzle-orm/neon-http/migrator";
-import { getAdminByUsername, createAdminUser, getDb } from "../server/db";
+import { getAdminByUsername, createAdminUser, updateAdminPassword, getDb } from "../server/db";
 
 const app = express();
 
@@ -32,23 +32,33 @@ async function migrateDb() {
 // If ADMIN_USERNAME and ADMIN_PASSWORD are set and no admin with that username
 // exists yet, create it automatically on startup. Safe to run on every deploy.
 async function seedAdminFromEnv() {
-  const username = process.env.ADMIN_USERNAME;
-  const password = process.env.ADMIN_PASSWORD;
-  const displayName = process.env.ADMIN_DISPLAY_NAME ?? "צוות הפקה";
+  // trim() guards against stray whitespace/newlines pasted into the dashboard
+  const username = process.env.ADMIN_USERNAME?.trim();
+  const password = process.env.ADMIN_PASSWORD?.trim();
+  const displayName = process.env.ADMIN_DISPLAY_NAME?.trim() || "צוות הפקה";
 
   if (!username || !password) return; // env vars not set — skip
 
   try {
     const existing = await getAdminByUsername(username);
-    if (existing) {
-      console.log(`[seed] Admin "${username}" already exists — skipping`);
+    if (!existing) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      await createAdminUser({ username, passwordHash, displayName });
+      console.log(`[seed] Admin "${username}" created successfully`);
       return;
     }
-    const passwordHash = await bcrypt.hash(password, 10);
-    await createAdminUser({ username, passwordHash, displayName });
-    console.log(`[seed] Admin "${username}" created successfully`);
+    // Keep the stored password in sync with ADMIN_PASSWORD so changing the
+    // env var (+ redeploy) is all it takes to change the admin password.
+    const matches = await bcrypt.compare(password, existing.passwordHash);
+    if (!matches) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      await updateAdminPassword(username, passwordHash);
+      console.log(`[seed] Admin "${username}" password updated from env`);
+    } else {
+      console.log(`[seed] Admin "${username}" already up to date`);
+    }
   } catch (err) {
-    console.error("[seed] Failed to create admin from env:", err);
+    console.error("[seed] Failed to seed admin from env:", err);
   }
 }
 

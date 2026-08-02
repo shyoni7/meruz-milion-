@@ -243,3 +243,9 @@ export async function createAdminUser(data: InsertAdminUser) {
   if (!db) throw new Error("DB not available");
   await db.insert(adminUsers).values(data);
 }
+
+export async function updateAdminPassword(username: string, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(adminUsers).set({ passwordHash }).where(eq(adminUsers.username, username));
+}
