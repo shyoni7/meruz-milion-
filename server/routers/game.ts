@@ -92,12 +92,12 @@ export const gameRouter = router({
       const { createSubmission } = await import("../db");
       const buffer = Buffer.from(input.imageBase64, "base64");
       const key = `submissions/team-${input.teamId}/station-${input.stationId}-${Date.now()}.jpg`;
-      const { url } = await storagePut(key, buffer, input.mimeType);
+      const { url, key: storedKey } = await storagePut(key, buffer, input.mimeType);
       await createSubmission({
         teamId: input.teamId,
         stationId: input.stationId,
         imageUrl: url,
-        imageKey: key,
+        imageKey: storedKey,
       });
       return { success: true, imageUrl: url };
     }),

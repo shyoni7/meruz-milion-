@@ -1,84 +1,60 @@
-// Storage helpers using Cloudinary for independent deployment (Vercel-compatible).
-// Replaces the Manus Forge S3 proxy with Cloudinary's free-tier CDN.
-// Required env vars: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-import { v2 as cloudinary } from "cloudinary";
+// Storage helpers using Vercel Blob so the whole stack lives in Vercel.
+// Requires a Blob store connected to the project (injects BLOB_READ_WRITE_TOKEN).
+import { del, put } from "@vercel/blob";
 
-function configureCloudinary() {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-  if (!cloudName || !apiKey || !apiSecret) {
+function assertBlobConfigured() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error(
-      "Cloudinary config missing: set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET",
+      "Vercel Blob is not configured: connect a Blob store to the project (Storage → Create Database → Blob)",
     );
   }
-
-  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
 }
 
 /**
- * Upload a file to Cloudinary.
- * Returns { key, url } where url is a public CDN URL (no proxy needed).
+ * Upload a file to Vercel Blob.
+ * Returns { key, url } where url is a public CDN URL and key is the blob URL
+ * (usable with storageDelete).
  */
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  configureCloudinary();
+  assertBlobConfigured();
 
-  const base64 =
-    typeof data === "string"
-      ? data
-      : Buffer.from(data as Uint8Array).toString("base64");
+  const body = typeof data === "string" ? Buffer.from(data, "base64") : Buffer.from(data);
 
-  const mimeType = contentType || "image/jpeg";
-  const dataUri = `data:${mimeType};base64,${base64}`;
-
-  // Use relKey as public_id: strip extension, replace slashes with dashes
-  const publicId = relKey
-    .replace(/\.[^/.]+$/, "")
-    .replace(/\//g, "-");
-
-  const result = await cloudinary.uploader.upload(dataUri, {
-    public_id: publicId,
-    resource_type: "auto",
-    overwrite: false,
+  const blob = await put(relKey, body, {
+    access: "public",
+    contentType: contentType || "image/jpeg",
+    addRandomSuffix: false,
+    allowOverwrite: true,
   });
 
-  return { key: result.public_id, url: result.secure_url };
+  return { key: blob.url, url: blob.url };
 }
 
 /**
- * Get the public URL for a stored file by its Cloudinary public_id.
+ * Get the public URL for a stored file. Blob keys are already public URLs.
  */
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  configureCloudinary();
-  const url = cloudinary.url(relKey, { secure: true });
-  return { key: relKey, url };
+  return { key: relKey, url: relKey };
 }
 
 /**
- * Get a signed URL with 1-hour expiry.
+ * Blob URLs are public and unguessable; return the URL as-is.
  */
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  configureCloudinary();
-  const url = cloudinary.url(relKey, {
-    secure: true,
-    sign_url: true,
-    expires_at: Math.floor(Date.now() / 1000) + 3600,
-  });
-  return url;
+  return relKey;
 }
 
 /**
- * Delete a file from Cloudinary by its public_id.
+ * Delete a file from Vercel Blob by its URL (or pathname).
  */
 export async function storageDelete(relKey: string): Promise<void> {
-  configureCloudinary();
+  assertBlobConfigured();
   try {
-    await cloudinary.uploader.destroy(relKey, { resource_type: "image" });
+    await del(relKey);
   } catch (err) {
     console.warn(`[Storage] Delete failed for key "${relKey}":`, err);
   }
