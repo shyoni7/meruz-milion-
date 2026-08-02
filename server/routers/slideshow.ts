@@ -85,7 +85,16 @@ export const slideshowRouter = router({
         teamName: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+      .mutation(async ({ input }) => {
+      // AI captions are disabled when OPENAI_API_KEY is not set.
+      // To enable: set OPENAI_API_KEY in environment variables.
+      const apiKeyAvailable = !!(process.env.OPENAI_API_KEY || process.env.BUILT_IN_FORGE_API_KEY);
+
+      if (!apiKeyAvailable) {
+        // Return empty captions — slideshow will show photos without text overlays
+        return { captions: input.stationTitles.map(() => "") };
+      }
+
       const prompt = `אתה כותב הערות שנונות ומצחיקות לאלבום תמונות של משחק "המירוץ ל-70" — מסע מיוחד לכבוד יום הולדת 70.
 
 הקבוצה "${input.teamName}" השתתפה בתחנות הבאות:
@@ -98,7 +107,7 @@ ${input.stationTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 
       try {
         const res = await invokeLLM({
-          model: "gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
           responseFormat: {
             type: "json_schema",
@@ -126,10 +135,7 @@ ${input.stationTitles.map((t, i) => `${i + 1}. ${t}`).join("\n")}
         return { captions };
       } catch (err) {
         console.error("[Slideshow] LLM caption generation failed:", err);
-        // Fallback captions
-        return {
-          captions: input.stationTitles.map((t) => `תחנת ${t} — רגע בלתי נשכח! 🌟`),
-        };
+        return { captions: input.stationTitles.map(() => "") };
       }
     }),
 });
