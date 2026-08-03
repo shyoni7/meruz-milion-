@@ -54,6 +54,10 @@ export const stations = pgTable("stations", {
   taskTitle: varchar("taskTitle", { length: 255 }).notNull(),
   taskDescription: text("taskDescription").notNull(),
   taskImageUrl: text("taskImageUrl"),
+  /** Mission type: photo (default) | puzzle | coordinates | morse */
+  taskType: varchar("taskType", { length: 20 }).default("photo").notNull(),
+  /** Expected answer for coordinates/morse missions (also drives the morse QR) */
+  taskAnswer: text("taskAnswer"),
   hint1: text("hint1"),
   hint2: text("hint2"),
   hint3: text("hint3"),

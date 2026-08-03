@@ -2,20 +2,21 @@
  * HaMerutz L-70 — Task Screen (מסך משימה)
  * Design: Cinematic Broadcast — Dark Navy / Metallic Gold
  *
- * Full-viewport screen with:
- * - Station image (placeholder gradient)
- * - Title
- * - Task instructions
- * - Waze button (optional)
- * - Help button → HintCenter
- * - Send photo button → ControlRoom
+ * Supports four mission types (set per station in the admin panel):
+ * - photo:       take a photo → production approval (ControlRoom)
+ * - puzzle:      3x3 sliding puzzle from an admin image → auto-advance
+ * - coordinates: type the correct answer/code → auto-advance
+ * - morse:       decode a morse message (QR hidden at the station) using
+ *                the in-app legend, type the word → auto-advance
  */
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Navigation, Lightbulb, Camera } from "lucide-react";
+import { Navigation, Lightbulb, Camera, KeyRound, Radio } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import HintCenter from "./HintCenter";
+import SlidingPuzzle from "@/components/SlidingPuzzle";
+import { HEBREW_LEGEND } from "@/lib/morse";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -28,10 +29,14 @@ const STATION_GRADIENTS: Record<string, string> = {
 };
 
 export default function TaskScreen() {
-  const { currentStation, goToControlRoom } = useGame();
+  const { currentStation, goToControlRoom, approveMission } = useGame();
   const [showHints, setShowHints] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [answer, setAnswer] = useState("");
+  const [showLegend, setShowLegend] = useState(false);
+
+  const taskType = currentStation.taskType ?? "photo";
 
   // Get teamId from localStorage
   const teamId = parseInt(localStorage.getItem("hamerutz_team_id") ?? "0", 10);
@@ -47,6 +52,23 @@ export default function TaskScreen() {
       setUploading(false);
     },
   });
+
+  const checkAnswerMutation = trpc.game.checkAnswer.useMutation({
+    onSuccess: (res) => {
+      if (res.correct) {
+        toast.success("תשובה נכונה! 🎉");
+        approveMission();
+      } else {
+        toast.error("תשובה שגויה, נסו שוב");
+      }
+    },
+    onError: () => toast.error("שגיאה בבדיקת התשובה, נסו שוב"),
+  });
+
+  const handleCheckAnswer = () => {
+    if (!answer.trim() || !currentStation.dbId) return;
+    checkAnswerMutation.mutate({ stationId: currentStation.dbId, answer });
+  };
 
   // Downscale + re-encode the photo before upload. Phone cameras produce
   // multi-MB images that exceed the serverless request body limit (~4.5MB);
@@ -112,70 +134,149 @@ export default function TaskScreen() {
   const gradient = STATION_GRADIENTS[currentStation.image] ||
     "linear-gradient(135deg, oklch(0.18 0.04 250), oklch(0.13 0.03 250))";
 
+  const answerInput = (placeholder: string) => (
+    <div className="flex flex-col gap-3">
+      <input
+        type="text"
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl bg-[oklch(0.1_0.03_250/0.8)] border border-[#c9a84c]/40 text-white text-lg text-center py-3 px-4 focus:outline-none focus:border-[#c9a84c]"
+        onKeyDown={(e) => e.key === "Enter" && handleCheckAnswer()}
+      />
+      <button
+        className="btn-gold flex items-center justify-center gap-2"
+        onClick={handleCheckAnswer}
+        disabled={checkAnswerMutation.isPending || !answer.trim()}
+      >
+        <KeyRound size={16} />
+        {checkAnswerMutation.isPending ? "בודק..." : "בדקו את התשובה"}
+      </button>
+    </div>
+  );
+
   return (
     <>
-      <div className="game-screen" dir="rtl">
+      <div className="game-screen overflow-y-auto" dir="rtl">
         {/* Background */}
         <div className="absolute inset-0" style={{ background: gradient }} />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[oklch(0.13_0.03_250/0.3)] to-[oklch(0.13_0.03_250/0.98)]" />
 
-        {/* Station image placeholder */}
-        <div
-          className="absolute top-0 left-0 right-0 h-[45vh]"
-          style={{ background: gradient }}
-        >
-          {/* Image label overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-gold/40 text-xs tracking-widest uppercase mb-1">תמונה</p>
-              <p className="text-white/20 text-sm font-mono">{currentStation.image}</p>
-            </div>
-          </div>
-          {/* Bottom fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[oklch(0.13_0.03_250)] to-transparent" />
-        </div>
-
         {/* Content */}
-        <div className="relative z-10 flex flex-col h-full max-w-[480px] mx-auto w-full px-6">
+        <div className="relative z-10 flex flex-col min-h-full max-w-[480px] mx-auto w-full px-6">
           {/* Top bar */}
-          <div className="flex items-center justify-between pt-12 pb-4">
+          <div className="flex items-center justify-between pt-12 pb-4 shrink-0">
             <div className="station-badge">{currentStation.number}</div>
-            <p className="text-gold/60 text-xs tracking-widest uppercase">משימה</p>
+            <p className="text-gold/60 text-xs tracking-widest uppercase">
+              {taskType === "puzzle" && "פאזל"}
+              {taskType === "coordinates" && "קואורדינטות"}
+              {taskType === "morse" && "קוד מורס"}
+              {taskType === "photo" && "משימה"}
+            </p>
           </div>
-
-          {/* Spacer to push content below image */}
-          <div style={{ height: "calc(45vh - 80px)" }} />
 
           {/* Task content */}
-          <div className="flex-1 flex flex-col justify-between pb-8">
-            <div className="flex flex-col gap-4">
-              <motion.h1
-                className="font-display text-white text-2xl font-bold"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 }}
-              >
-                {currentStation.task.title}
-              </motion.h1>
-
-              <motion.div
-                className="glass-card p-4"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.2 }}
-              >
-                <p className="text-white/90 text-base leading-relaxed">
-                  {currentStation.task.instructions}
-                </p>
-              </motion.div>
-            </div>
-
-            {/* Action buttons */}
-            <motion.div
-              className="flex flex-col gap-3 mt-6"
+          <div className="flex-1 flex flex-col gap-4 pb-8">
+            <motion.h1
+              className="font-display text-white text-2xl font-bold shrink-0"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.35 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+            >
+              {currentStation.task.title}
+            </motion.h1>
+
+            <motion.div
+              className="glass-card p-4 shrink-0"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.2 }}
+            >
+              <p className="text-white/90 text-base leading-relaxed">
+                {currentStation.task.instructions}
+              </p>
+            </motion.div>
+
+            {/* ── Mission body by type ─────────────────────────────── */}
+            <motion.div
+              className="flex flex-col gap-3 shrink-0"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.3 }}
+            >
+              {taskType === "puzzle" && (
+                currentStation.taskImageUrl ? (
+                  <SlidingPuzzle
+                    imageUrl={currentStation.taskImageUrl}
+                    onSolved={approveMission}
+                  />
+                ) : (
+                  <div className="glass-card p-4 text-center text-white/60 text-sm">
+                    לא הוגדרה תמונת פאזל לתחנה הזו — פנו לצוות ההפקה
+                  </div>
+                )
+              )}
+
+              {taskType === "coordinates" && answerInput("הקלידו את התשובה / הקוד")}
+
+              {taskType === "morse" && (
+                <>
+                  <button
+                    className="btn-outline-gold flex items-center justify-center gap-2"
+                    onClick={() => setShowLegend((v) => !v)}
+                  >
+                    <Radio size={16} />
+                    {showLegend ? "הסתירו את מקרא המורס" : "הציגו את מקרא המורס"}
+                  </button>
+                  {showLegend && (
+                    <div className="glass-card p-4" dir="rtl">
+                      <div className="grid grid-cols-4 gap-x-3 gap-y-1 text-center">
+                        {HEBREW_LEGEND.map(([letter, code]) => (
+                          <div key={letter} className="flex items-center justify-between gap-1 text-sm">
+                            <span className="text-gold font-bold">{letter}</span>
+                            <span className="text-white/80 font-mono tracking-wider" dir="ltr">{code}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {answerInput("הקלידו את המילה שפוענחה")}
+                </>
+              )}
+
+              {taskType === "photo" && (
+                <>
+                  <input
+                    id="photo-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handlePhotoCapture}
+                  />
+                  {photoPreview && (
+                    <div className="rounded-xl overflow-hidden border border-[#c9a84c]/30">
+                      <img src={photoPreview} alt="תצוגה מקדימה" className="w-full h-32 object-cover" />
+                    </div>
+                  )}
+                  <button
+                    className="btn-gold flex items-center justify-center gap-2"
+                    onClick={handleSendPhoto}
+                    disabled={uploading}
+                  >
+                    <Camera size={16} />
+                    {uploading ? "מעלה תמונה..." : "צלם ושלח תמונה"}
+                  </button>
+                </>
+              )}
+            </motion.div>
+
+            {/* ── Common actions ───────────────────────────────────── */}
+            <motion.div
+              className="flex flex-col gap-3 mt-auto shrink-0"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.4 }}
             >
               {/* Waze button — only if wazeLink exists */}
               {currentStation.task.wazeLink && (
@@ -197,29 +298,6 @@ export default function TaskScreen() {
               >
                 <Lightbulb size={16} />
                 צריכים עזרה?
-              </button>
-
-              {/* Send photo button */}
-              <input
-                id="photo-input"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhotoCapture}
-              />
-              {photoPreview && (
-                <div className="rounded-xl overflow-hidden border border-[#c9a84c]/30">
-                  <img src={photoPreview} alt="תצוגה מקדימה" className="w-full h-32 object-cover" />
-                </div>
-              )}
-              <button
-                className="btn-gold flex items-center justify-center gap-2"
-                onClick={handleSendPhoto}
-                disabled={uploading}
-              >
-                <Camera size={16} />
-                {uploading ? "מעלה תמונה..." : "צלם ושלח תמונה"}
               </button>
             </motion.div>
           </div>

@@ -112,6 +112,8 @@ type DbStation = {
   clueImageUrl: string | null;
   taskTitle: string;
   taskDescription: string;
+  taskImageUrl?: string | null;
+  taskType?: string;
   hint1: string | null;
   hint2: string | null;
   hint3: string | null;
@@ -123,6 +125,8 @@ function mapDbStation(s: DbStation, idx: number): Station {
   return {
     id: `station-${s.id}`,
     dbId: s.id,
+    taskType: (s.taskType as Station["taskType"]) ?? "photo",
+    taskImageUrl: s.taskImageUrl || undefined,
     number: idx + 1,
     name: s.title,
     image: s.clueImageUrl ?? "",

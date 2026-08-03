@@ -10,10 +10,16 @@
  * Replace placeholder content with real content when approved.
  */
 
+export type TaskType = "photo" | "puzzle" | "coordinates" | "morse";
+
 export interface Station {
   id: string;
   /** Database id of the station (present when loaded from the admin panel). */
   dbId?: number;
+  /** Mission type — photo (default), puzzle, coordinates or morse. */
+  taskType?: TaskType;
+  /** Image used by puzzle missions. */
+  taskImageUrl?: string;
   number: number;
   name: string;
   image: string; // e.g. "02-netanya" — will be used as placeholder label

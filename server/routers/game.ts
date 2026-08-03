@@ -39,9 +39,11 @@ export const gameRouter = router({
       return { teamId: created.id };
     }),
 
-  // Get all active stations (public — no auth needed)
+  // Get all active stations (public — no auth needed).
+  // taskAnswer is stripped so the correct answer never reaches the client.
   getStations: publicProcedure.query(async () => {
-    return getActiveStations();
+    const stations = await getActiveStations();
+    return stations.map(({ taskAnswer: _a, ...rest }) => rest);
   }),
 
   // Get a single station by id
@@ -50,7 +52,22 @@ export const gameRouter = router({
     .query(async ({ input }) => {
       const station = await getStationById(input.id);
       if (!station) throw new TRPCError({ code: "NOT_FOUND", message: "Station not found" });
-      return station;
+      const { taskAnswer: _a, ...rest } = station;
+      return rest;
+    }),
+
+  // Check a typed answer for coordinates/morse missions (server-side so the
+  // correct answer never reaches the client)
+  checkAnswer: publicProcedure
+    .input(z.object({ stationId: z.number(), answer: z.string().max(200) }))
+    .mutation(async ({ input }) => {
+      const station = await getStationById(input.stationId);
+      if (!station) throw new TRPCError({ code: "NOT_FOUND", message: "Station not found" });
+      const normalize = (s: string) =>
+        s.toLowerCase().replace(/[^0-9a-z\u0590-\u05FF.]/g, "");
+      const expected = normalize(station.taskAnswer ?? "");
+      if (!expected) return { correct: false };
+      return { correct: normalize(input.answer) === expected };
     }),
 
   // Get team progress

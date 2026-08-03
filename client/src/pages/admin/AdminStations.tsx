@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, Edit, MapPin, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Edit, MapPin, Plus, Trash2, Upload } from "lucide-react";
+import QRCode from "qrcode";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { toMorse } from "@/lib/morse";
+
+type TaskType = "photo" | "puzzle" | "coordinates" | "morse";
 
 type StationForm = {
   orderIndex: number;
@@ -19,6 +23,9 @@ type StationForm = {
   clueText: string;
   taskTitle: string;
   taskDescription: string;
+  taskType: TaskType;
+  taskAnswer: string;
+  taskImageUrl: string;
   hint1: string;
   hint2: string;
   hint3: string;
@@ -34,6 +41,9 @@ const emptyForm: StationForm = {
   clueText: "",
   taskTitle: "",
   taskDescription: "",
+  taskType: "photo",
+  taskAnswer: "",
+  taskImageUrl: "",
   hint1: "",
   hint2: "",
   hint3: "",
@@ -42,12 +52,21 @@ const emptyForm: StationForm = {
   isActive: true,
 };
 
+const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  photo: "📸 צילום תמונה (אישור הפקה)",
+  puzzle: "🧩 פאזל הזזה (מתקדמים אוטומטית)",
+  coordinates: "📍 קואורדינטות / קוד (מתקדמים אוטומטית)",
+  morse: "📡 קוד מורס + QR (מתקדמים אוטומטית)",
+};
+
 export default function AdminStations() {
   const { token } = useAdmin();
   const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<StationForm>(emptyForm);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
   const { data: stations, isLoading } = trpc.admin.getStations.useQuery(
@@ -81,6 +100,58 @@ export default function AdminStations() {
     onError: (e) => toast.error(e.message),
   });
 
+  const uploadImageMutation = trpc.admin.uploadImage.useMutation();
+
+  // Generate a printable QR containing the morse code of the answer
+  useEffect(() => {
+    if (form.taskType === "morse" && form.taskAnswer.trim()) {
+      QRCode.toDataURL(toMorse(form.taskAnswer), { width: 400, margin: 2 })
+        .then(setQrDataUrl)
+        .catch(() => setQrDataUrl(null));
+    } else {
+      setQrDataUrl(null);
+    }
+  }, [form.taskType, form.taskAnswer]);
+
+  const handlePuzzleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      // Downscale to keep the upload small
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const MAX = 1200;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("no canvas"));
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = () => reject(new Error("bad image"));
+        img.src = url;
+      });
+      const { url } = await uploadImageMutation.mutateAsync({
+        token: token!,
+        imageBase64: dataUrl.split(",")[1],
+        mimeType: "image/jpeg",
+      });
+      setForm((p) => ({ ...p, taskImageUrl: url }));
+      toast.success("התמונה הועלתה");
+    } catch {
+      toast.error("שגיאה בהעלאת התמונה");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...emptyForm, orderIndex: (stations?.length ?? 0) + 1 });
@@ -96,6 +167,9 @@ export default function AdminStations() {
       clueText: s.clueText,
       taskTitle: s.taskTitle,
       taskDescription: s.taskDescription,
+      taskType: ((s as { taskType?: string }).taskType as TaskType) ?? "photo",
+      taskAnswer: (s as { taskAnswer?: string | null }).taskAnswer ?? "",
+      taskImageUrl: s.taskImageUrl ?? "",
       hint1: s.hint1 ?? "",
       hint2: s.hint2 ?? "",
       hint3: s.hint3 ?? "",
@@ -113,6 +187,9 @@ export default function AdminStations() {
     if (!form.clueText.trim()) missing.push("טקסט הרמז");
     if (!form.taskTitle.trim()) missing.push("כותרת משימה");
     if (!form.taskDescription.trim()) missing.push("תיאור המשימה");
+    if (form.taskType === "puzzle" && !form.taskImageUrl.trim()) missing.push("תמונת פאזל");
+    if ((form.taskType === "coordinates" || form.taskType === "morse") && !form.taskAnswer.trim())
+      missing.push("התשובה הנכונה");
     if (missing.length > 0) {
       toast.error(`חסרים שדות חובה: ${missing.join(", ")}`);
       return;
@@ -219,6 +296,62 @@ export default function AdminStations() {
               <Label className="text-gray-300">תיאור המשימה *</Label>
               <Textarea value={form.taskDescription} onChange={f("taskDescription")} className="bg-[#0a0f1e] border-[#c9a84c]/30 text-white min-h-[80px]" placeholder="הסבר מה צריך לעשות..." />
             </div>
+
+            {/* ── Mission type ─────────────────────────────────── */}
+            <div className="space-y-1">
+              <Label className="text-gray-300">סוג משימה</Label>
+              <select
+                value={form.taskType}
+                onChange={(e) => setForm((p) => ({ ...p, taskType: e.target.value as TaskType }))}
+                className="w-full h-10 rounded-md bg-[#0a0f1e] border border-[#c9a84c]/30 text-white px-3 text-sm"
+              >
+                {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((t) => (
+                  <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+            </div>
+
+            {form.taskType === "puzzle" && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">תמונת פאזל * (תיחתך ל-9 אריחים)</Label>
+                {form.taskImageUrl && (
+                  <img src={form.taskImageUrl} alt="תמונת פאזל" className="w-32 h-32 object-cover rounded-lg border border-[#c9a84c]/30" />
+                )}
+                <label className="flex items-center gap-2 cursor-pointer text-[#c9a84c] hover:text-[#f0d080] text-sm w-fit">
+                  <Upload className="w-4 h-4" />
+                  {uploadingImage ? "מעלה תמונה..." : form.taskImageUrl ? "החלפת תמונה" : "העלאת תמונה"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePuzzleImage} disabled={uploadingImage} />
+                </label>
+              </div>
+            )}
+
+            {(form.taskType === "coordinates" || form.taskType === "morse") && (
+              <div className="space-y-1">
+                <Label className="text-gray-300">התשובה הנכונה *</Label>
+                <Input
+                  value={form.taskAnswer}
+                  onChange={f("taskAnswer")}
+                  className="bg-[#0a0f1e] border-[#c9a84c]/30 text-white"
+                  placeholder={form.taskType === "morse" ? "המילה שהקבוצה צריכה לפענח" : "למשל: 32.284 34.858 או מילת קוד"}
+                />
+                <p className="text-xs text-gray-500">הבדיקה מתעלמת מרווחים, פסיקים וסימנים — רק אותיות ומספרים נספרים</p>
+              </div>
+            )}
+
+            {form.taskType === "morse" && qrDataUrl && (
+              <div className="space-y-2 text-center border border-[#c9a84c]/20 rounded-lg p-3">
+                <Label className="text-gray-300">קוד ה-QR להדפסה — הסתירו אותו בתחנה</Label>
+                <img src={qrDataUrl} alt="QR" className="w-40 h-40 mx-auto bg-white p-2 rounded-lg" />
+                <p className="text-xs text-gray-400 font-mono break-all" dir="ltr">{toMorse(form.taskAnswer)}</p>
+                <a
+                  href={qrDataUrl}
+                  download={`morse-qr-${form.title || "station"}.png`}
+                  className="text-[#c9a84c] underline text-sm"
+                >
+                  הורדת ה-QR כתמונה
+                </a>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-gray-300">רמז 1</Label>

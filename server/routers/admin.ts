@@ -95,6 +95,8 @@ export const adminRouter = router({
         taskTitle: z.string().min(1),
         taskDescription: z.string().min(1),
         taskImageUrl: z.string().optional(),
+        taskType: z.enum(["photo", "puzzle", "coordinates", "morse"]).optional(),
+        taskAnswer: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -123,6 +125,8 @@ export const adminRouter = router({
         taskTitle: z.string().optional(),
         taskDescription: z.string().optional(),
         taskImageUrl: z.string().optional(),
+        taskType: z.enum(["photo", "puzzle", "coordinates", "morse"]).optional(),
+        taskAnswer: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -191,5 +195,23 @@ export const adminRouter = router({
       await requireAdmin(input.token);
       await deleteTeam(input.teamId);
       return { success: true };
+    }),
+
+  // Upload an image (e.g. a puzzle image) to Blob storage, returns its URL
+  uploadImage: publicProcedure
+    .input(
+      z.object({
+        token: z.string(),
+        imageBase64: z.string(),
+        mimeType: z.string().default("image/jpeg"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      await requireAdmin(input.token);
+      const { storagePut } = await import("../storage");
+      const buffer = Buffer.from(input.imageBase64, "base64");
+      const key = `stations/image-${Date.now()}.jpg`;
+      const { url } = await storagePut(key, buffer, input.mimeType);
+      return { url };
     }),
 });
