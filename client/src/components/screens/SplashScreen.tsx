@@ -39,20 +39,21 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
       {/* Gold-framed card */}
       <div className="relative z-10 min-h-full flex items-stretch max-w-[480px] mx-auto w-full p-3">
         <div
-          className="flex-1 rounded-2xl p-[2px] my-1"
+          className="flex-1 rounded-2xl p-[2px] my-1 flex"
           style={{
             background:
               "linear-gradient(160deg, #e8c876 0%, #a07f2c 25%, #f0d080 50%, #8a6b20 75%, #e8c876 100%)",
             boxShadow: "0 0 40px oklch(0.72 0.12 75 / 0.25)",
           }}
         >
-          <div className="h-full w-full rounded-[14px] bg-[oklch(0.14_0.035_255/0.96)] px-6 py-8 flex flex-col items-center justify-center gap-5">
+          <div className="flex-1 w-full rounded-[14px] bg-[oklch(0.14_0.035_255/0.96)] px-5 py-8 flex">
+            <div className="m-auto w-full flex flex-col items-center gap-5">
             {/* Logo (falls back to a styled "70" badge if the image fails) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="gold-glow"
+              className="gold-glow shrink-0"
             >
               {logoFailed ? (
                 <div className="w-32 h-32 rounded-full border-2 border-gold/70 flex flex-col items-center justify-center">
@@ -70,7 +71,7 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
             </motion.div>
 
             {/* Welcome title */}
-            <motion.div className="text-center" {...fadeUp(0.35)}>
+            <motion.div className="text-center shrink-0" {...fadeUp(0.35)}>
               <h1 className="text-white text-4xl font-extrabold leading-tight">
                 ברוכים הבאים
               </h1>
@@ -80,7 +81,7 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
             </motion.div>
 
             {/* Star divider */}
-            <motion.div className="flex items-center gap-3 w-full" {...fadeUp(0.45)}>
+            <motion.div className="flex items-center gap-3 w-full shrink-0" {...fadeUp(0.45)}>
               <div className="gold-rule flex-1" />
               <Star className="w-4 h-4 text-gold fill-current" />
               <div className="gold-rule flex-1" />
@@ -88,7 +89,7 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
 
             {/* Intro text */}
             <motion.p
-              className="text-white/90 text-lg leading-relaxed text-center font-medium"
+              className="text-white/90 text-lg leading-relaxed text-center font-medium shrink-0"
               {...fadeUp(0.55)}
             >
               השנה אנחנו לא רצים אחרי מיליון...
@@ -99,7 +100,7 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
             </motion.p>
 
             {/* Instruction rows */}
-            <motion.div className="flex flex-col gap-4 w-full mt-1" {...fadeUp(0.7)}>
+            <motion.div className="flex flex-col gap-4 w-full mt-1 shrink-0" {...fadeUp(0.7)}>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl border border-gold/50 flex items-center justify-center shrink-0">
                   <Camera className="w-6 h-6 text-gold" />
@@ -124,14 +125,14 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
 
             {/* Ready? */}
             <motion.p
-              className="text-gold text-3xl font-extrabold mt-2"
+              className="text-gold text-3xl font-extrabold mt-2 shrink-0"
               {...fadeUp(0.85)}
             >
               מוכנים?
             </motion.p>
 
             {/* CTA */}
-            <motion.div className="w-full flex flex-col items-center gap-2" {...fadeUp(0.95)}>
+            <motion.div className="w-full flex flex-col items-center gap-2 shrink-0" {...fadeUp(0.95)}>
               <button
                 className="w-full py-4 rounded-xl text-[#0a0f1e] text-lg font-bold border border-[#f0d080]/70"
                 style={{
@@ -150,6 +151,7 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
                 <ChevronsDown className="w-7 h-7 text-gold" />
               </motion.div>
             </motion.div>
+            </div>
           </div>
         </div>
       </div>
