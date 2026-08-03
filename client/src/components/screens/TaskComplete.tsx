@@ -14,12 +14,11 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useGame } from "@/contexts/GameContext";
-import { stations } from "@/data/stations";
 
 const BG_SUCCESS = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/bg-success-iGeqHPygneH9kHBLgKfVBi.webp";
 
 export default function TaskComplete() {
-  const { currentStation, nextStation, state } = useGame();
+  const { currentStation, nextStation, state, stations } = useGame();
   const confettiFired = useRef(false);
   const isLastStation = state.currentStationIndex === stations.length - 1;
 

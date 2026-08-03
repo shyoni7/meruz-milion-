@@ -7,15 +7,19 @@
  * - Which screen is currently shown
  * - How many hints have been revealed
  * - Whether the game is finished
+ *
+ * Stations come from the database (admin panel). The hardcoded demo
+ * stations are used only as a fallback while loading / when the DB is empty.
  */
 
-import React, { createContext, useContext, useReducer } from "react";
+import React, { createContext, useContext, useMemo, useReducer } from "react";
 import {
   GameState,
-  ScreenType,
+  Station,
   initialGameState,
-  stations,
+  stations as builtinStations,
 } from "@/data/stations";
+import { trpc } from "@/lib/trpc";
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
@@ -25,9 +29,9 @@ type GameAction =
   | { type: "GO_TO_CONTROL_ROOM" }     // TASK → CONTROL_ROOM
   | { type: "APPROVE_MISSION" }        // CONTROL_ROOM → COMPLETE
   | { type: "RETRY_MISSION" }          // CONTROL_ROOM → TRY_AGAIN
-  | { type: "RETRY_PHOTO" }            // TRY_AGAIN → CONTROL_ROOM
-  | { type: "NEXT_STATION" }           // COMPLETE → next CLUE (or finish)
-  | { type: "REVEAL_HINT" }            // reveal next hint
+  | { type: "RETRY_PHOTO" }            // TRY_AGAIN → TASK (retake the photo)
+  | { type: "NEXT_STATION"; totalStations: number } // COMPLETE → next CLUE (or finish)
+  | { type: "REVEAL_HINT"; maxHints: number }       // reveal next hint
   | { type: "RESET_GAME" };            // restart from beginning
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
@@ -63,14 +67,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "RETRY_PHOTO": {
-      // TRY_AGAIN → CONTROL_ROOM (after retaking photo)
-      return { ...state, currentScreen: "CONTROL_ROOM" };
+      // TRY_AGAIN → TASK so the team can actually take and send a new photo
+      return { ...state, currentScreen: "TASK" };
     }
 
     case "NEXT_STATION": {
       // COMPLETE → next station's CLUE, or finish
       const nextIndex = state.currentStationIndex + 1;
-      if (nextIndex >= stations.length) {
+      if (nextIndex >= action.totalStations) {
         return { ...state, isFinished: true };
       }
       return {
@@ -82,9 +86,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "REVEAL_HINT": {
-      const station = stations[state.currentStationIndex];
-      const maxHints = station.hints.length;
-      if (state.hintsRevealed < maxHints) {
+      if (state.hintsRevealed < action.maxHints) {
         return { ...state, hintsRevealed: state.hintsRevealed + 1 };
       }
       return state;
@@ -99,11 +101,54 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
+// ── DB → client station mapping ───────────────────────────────────────────────
+
+type DbStation = {
+  id: number;
+  orderIndex: number;
+  title: string;
+  subtitle: string | null;
+  clueText: string;
+  clueImageUrl: string | null;
+  taskTitle: string;
+  taskDescription: string;
+  hint1: string | null;
+  hint2: string | null;
+  hint3: string | null;
+  wazeUrl: string | null;
+  funFact: string | null;
+};
+
+function mapDbStation(s: DbStation, idx: number): Station {
+  return {
+    id: `station-${s.id}`,
+    dbId: s.id,
+    number: idx + 1,
+    name: s.title,
+    image: s.clueImageUrl ?? "",
+    clue: {
+      title: s.subtitle ? `${s.title} — ${s.subtitle}` : `תחנה ${idx + 1} — ${s.title}`,
+      text: s.clueText,
+    },
+    task: {
+      title: s.taskTitle,
+      instructions: s.taskDescription,
+      wazeLink: s.wazeUrl || undefined,
+    },
+    hints: [s.hint1, s.hint2, s.hint3].filter(
+      (h): h is string => typeof h === "string" && h.trim().length > 0
+    ),
+    fact: s.funFact ?? "",
+  };
+}
+
 // ── Context ───────────────────────────────────────────────────────────────────
 
 interface GameContextValue {
   state: GameState;
-  currentStation: (typeof stations)[0];
+  stations: Station[];
+  currentStation: Station;
+  stationsLoading: boolean;
   dispatch: React.Dispatch<GameAction>;
   // Convenience helpers
   scratchRevealed: () => void;
@@ -122,11 +167,29 @@ const GameContext = createContext<GameContextValue | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
 
-  const currentStation = stations[state.currentStationIndex];
+  // Load real stations from the database (admin panel). Refetch occasionally
+  // so newly added stations appear without a full reload.
+  const { data: dbStations, isLoading: stationsLoading } = trpc.game.getStations.useQuery(
+    undefined,
+    { staleTime: 30_000, refetchInterval: 60_000 }
+  );
+
+  const stations = useMemo<Station[]>(() => {
+    if (dbStations && dbStations.length > 0) {
+      return dbStations.map(mapDbStation);
+    }
+    return builtinStations;
+  }, [dbStations]);
+
+  // Clamp the index in case the station list shrank while playing
+  const safeIndex = Math.min(state.currentStationIndex, stations.length - 1);
+  const currentStation = stations[safeIndex];
 
   const value: GameContextValue = {
     state,
+    stations,
     currentStation,
+    stationsLoading,
     dispatch,
     scratchRevealed: () => dispatch({ type: "SCRATCH_REVEALED" }),
     advanceScreen: () => dispatch({ type: "ADVANCE_SCREEN" }),
@@ -134,8 +197,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     approveMission: () => dispatch({ type: "APPROVE_MISSION" }),
     retryMission: () => dispatch({ type: "RETRY_MISSION" }),
     retryPhoto: () => dispatch({ type: "RETRY_PHOTO" }),
-    nextStation: () => dispatch({ type: "NEXT_STATION" }),
-    revealHint: () => dispatch({ type: "REVEAL_HINT" }),
+    nextStation: () => dispatch({ type: "NEXT_STATION", totalStations: stations.length }),
+    revealHint: () =>
+      dispatch({ type: "REVEAL_HINT", maxHints: currentStation?.hints.length ?? 0 }),
     resetGame: () => dispatch({ type: "RESET_GAME" }),
   };
 

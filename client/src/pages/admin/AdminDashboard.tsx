@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
 import { CheckCircle, Clock, Film, Image, LogOut, MapPin, RefreshCw, Trophy, Users } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
@@ -18,13 +20,25 @@ export default function AdminDashboard() {
     { token: token! },
     { enabled: !!token }
   );
+  // Poll every 10s so new photos show up and trigger a notification
   const { data: submissions } = trpc.admin.getSubmissions.useQuery(
     { token: token! },
-    { enabled: !!token }
+    { enabled: !!token, refetchInterval: 10_000 }
   );
 
   const finishedTeams = teams?.filter((t) => t.isFinished).length ?? 0;
   const pendingSubmissions = submissions?.filter((s) => s.status === "pending").length ?? 0;
+
+  // Notify when new photos arrive while the dashboard is open
+  const prevPendingRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (submissions === undefined) return;
+    const prev = prevPendingRef.current;
+    if (prev !== null && pendingSubmissions > prev) {
+      toast.info(`📸 תמונה חדשה ממתינה לאישור (${pendingSubmissions} בסך הכול)`);
+    }
+    prevPendingRef.current = pendingSubmissions;
+  }, [pendingSubmissions, submissions]);
   const totalStations = stations?.length ?? 4;
 
   // Sort teams for leaderboard: finished first, then by station index desc

@@ -12,7 +12,6 @@
 
 import { motion } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
-import { stations } from "@/data/stations";
 
 // Background image URLs — replace with real images when approved
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/logo-70-3mbXKeQKDaBD2zfByZ2EMA.webp";

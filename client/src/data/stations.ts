@@ -12,6 +12,8 @@
 
 export interface Station {
   id: string;
+  /** Database id of the station (present when loaded from the admin panel). */
+  dbId?: number;
   number: number;
   name: string;
   image: string; // e.g. "02-netanya" — will be used as placeholder label

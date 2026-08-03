@@ -39,30 +39,64 @@ export default function TaskScreen() {
   const uploadMutation = trpc.game.uploadPhoto.useMutation({
     onSuccess: () => {
       toast.success("התמונה הועלתה בהצלחה! 📸");
+      setUploading(false);
       goToControlRoom();
     },
-    onError: (err) => {
+    onError: () => {
       toast.error("שגיאה בהעלאת התמונה, נסו שוב");
       setUploading(false);
     },
   });
 
-  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Downscale + re-encode the photo before upload. Phone cameras produce
+  // multi-MB images that exceed the serverless request body limit (~4.5MB);
+  // resizing to max 1600px JPEG keeps uploads small and reliable.
+  const compressImage = (file: File): Promise<{ base64: string; dataUrl: string }> =>
+    new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX_DIM = 1600;
+        const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas not supported"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        resolve({ base64: dataUrl.split(",")[1], dataUrl });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("failed to load image"));
+      };
+      img.src = objectUrl;
+    });
+
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Allow picking the same file again next time
+    e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      setPhotoPreview(reader.result as string);
-      setUploading(true);
+    setUploading(true);
+    try {
+      const { base64, dataUrl } = await compressImage(file);
+      setPhotoPreview(dataUrl);
       uploadMutation.mutate({
         teamId: teamId || 0,
-        stationId: currentStation.number,
+        stationId: currentStation.dbId ?? currentStation.number,
         imageBase64: base64,
-        mimeType: file.type,
+        mimeType: "image/jpeg",
       });
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      toast.error("שגיאה בקריאת התמונה, נסו שוב");
+      setUploading(false);
+    }
   };
 
   const handleSendPhoto = () => {

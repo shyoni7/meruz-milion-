@@ -107,10 +107,22 @@ export default function AdminStations() {
   };
 
   const handleSave = () => {
+    // Friendly validation before hitting the server
+    const missing: string[] = [];
+    if (!form.title.trim()) missing.push("כותרת תחנה");
+    if (!form.clueText.trim()) missing.push("טקסט הרמז");
+    if (!form.taskTitle.trim()) missing.push("כותרת משימה");
+    if (!form.taskDescription.trim()) missing.push("תיאור המשימה");
+    if (missing.length > 0) {
+      toast.error(`חסרים שדות חובה: ${missing.join(", ")}`);
+      return;
+    }
+    // The number input stores its value as a string — the server expects a number
+    const payload = { ...form, orderIndex: Number(form.orderIndex) || 1 };
     if (editingId) {
-      updateMutation.mutate({ token: token!, id: editingId, ...form });
+      updateMutation.mutate({ token: token!, id: editingId, ...payload });
     } else {
-      createMutation.mutate({ token: token!, ...form });
+      createMutation.mutate({ token: token!, ...payload });
     }
   };
 

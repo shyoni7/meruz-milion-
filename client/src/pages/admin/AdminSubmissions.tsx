@@ -12,9 +12,10 @@ export default function AdminSubmissions() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
+  // Poll every 10s so new photos appear without a manual refresh
   const { data: submissions, isLoading } = trpc.admin.getSubmissions.useQuery(
     { token: token! },
-    { enabled: !!token }
+    { enabled: !!token, refetchInterval: 10_000 }
   );
 
   const reviewMutation = trpc.admin.reviewSubmission.useMutation({
@@ -71,11 +72,13 @@ export default function AdminSubmissions() {
                       <span>קבוצה #{sub.teamId}</span>
                       <span>תחנה #{sub.stationId}</span>
                     </div>
-                    <img
-                      src={sub.imageUrl}
-                      alt="submission"
-                      className="w-full h-48 object-cover rounded-lg border border-white/10"
-                    />
+                    <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
+                      <img
+                        src={sub.imageUrl}
+                        alt="submission"
+                        className="w-full max-h-72 object-contain rounded-lg border border-white/10 bg-black/40"
+                      />
+                    </a>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -122,7 +125,9 @@ export default function AdminSubmissions() {
               {reviewed.map((sub) => (
                 <Card key={sub.id} className={`bg-[#0d1526] ${sub.status === "approved" ? "border-green-500/20" : "border-red-500/20"}`}>
                   <CardContent className="p-3 space-y-2">
-                    <img src={sub.imageUrl} alt="submission" className="w-full h-32 object-cover rounded" />
+                    <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
+                      <img src={sub.imageUrl} alt="submission" className="w-full max-h-48 object-contain rounded bg-black/40" />
+                    </a>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-500">קבוצה #{sub.teamId} | תחנה #{sub.stationId}</span>
                       <div className="flex items-center gap-2">
