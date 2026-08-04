@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAdmin } from "@/contexts/AdminContext";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, CheckCircle, Trash2, XCircle } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -11,6 +12,7 @@ export default function AdminSubmissions() {
   const { token } = useAdmin();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+  const [notes, setNotes] = useState<Record<number, string>>({});
 
   // Poll every 10s so new photos appear without a manual refresh
   const { data: submissions, isLoading } = trpc.admin.getSubmissions.useQuery(
@@ -79,10 +81,23 @@ export default function AdminSubmissions() {
                         className="w-full max-h-72 object-contain rounded-lg border border-white/10 bg-black/40"
                       />
                     </a>
+                    {(sub as { caption?: string | null }).caption && (
+                      <p className="text-sm text-white/90 bg-white/5 rounded-lg px-3 py-2">
+                        💬 {(sub as { caption?: string | null }).caption}
+                      </p>
+                    )}
+                    <input
+                      type="text"
+                      value={notes[sub.id] ?? ""}
+                      onChange={(e) => setNotes((p) => ({ ...p, [sub.id]: e.target.value }))}
+                      placeholder="הודעה לקבוצה (לא חובה) — תוצג להם עם התשובה"
+                      maxLength={300}
+                      className="w-full rounded-md bg-[#0a0f1e] border border-[#c9a84c]/30 text-white text-sm px-3 py-2 focus:outline-none focus:border-[#c9a84c]"
+                    />
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => reviewMutation.mutate({ token: token!, submissionId: sub.id, status: "approved" })}
+                        onClick={() => reviewMutation.mutate({ token: token!, submissionId: sub.id, status: "approved", adminNote: notes[sub.id]?.trim() || undefined })}
                         disabled={reviewMutation.isPending}
                         className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30"
                         variant="ghost"
@@ -92,7 +107,7 @@ export default function AdminSubmissions() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => reviewMutation.mutate({ token: token!, submissionId: sub.id, status: "rejected" })}
+                        onClick={() => reviewMutation.mutate({ token: token!, submissionId: sub.id, status: "rejected", adminNote: notes[sub.id]?.trim() || undefined })}
                         disabled={reviewMutation.isPending}
                         className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
                         variant="ghost"
@@ -128,6 +143,12 @@ export default function AdminSubmissions() {
                     <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
                       <img src={sub.imageUrl} alt="submission" className="w-full max-h-48 object-contain rounded bg-black/40" />
                     </a>
+                    {(sub as { caption?: string | null }).caption && (
+                      <p className="text-xs text-white/80">💬 {(sub as { caption?: string | null }).caption}</p>
+                    )}
+                    {sub.adminNote && (
+                      <p className="text-xs text-[#c9a84c]">📢 {sub.adminNote}</p>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-500">קבוצה #{sub.teamId} | תחנה #{sub.stationId}</span>
                       <div className="flex items-center gap-2">

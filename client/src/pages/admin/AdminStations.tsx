@@ -26,6 +26,8 @@ type StationForm = {
   taskType: TaskType;
   taskAnswer: string;
   taskImageUrl: string;
+  taskAudioUrl: string;
+  skipScratch: boolean;
   hint1: string;
   hint2: string;
   hint3: string;
@@ -44,6 +46,8 @@ const emptyForm: StationForm = {
   taskType: "photo",
   taskAnswer: "",
   taskImageUrl: "",
+  taskAudioUrl: "",
+  skipScratch: false,
   hint1: "",
   hint2: "",
   hint3: "",
@@ -66,6 +70,7 @@ export default function AdminStations() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<StationForm>(emptyForm);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
@@ -112,6 +117,36 @@ export default function AdminStations() {
       setQrDataUrl(null);
     }
   }, [form.taskType, form.taskAnswer]);
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("קובץ השמע גדול מדי — עד 3MB");
+      return;
+    }
+    setUploadingAudio(true);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("read failed"));
+        reader.readAsDataURL(file);
+      });
+      const { url } = await uploadImageMutation.mutateAsync({
+        token: token!,
+        imageBase64: dataUrl.split(",")[1],
+        mimeType: file.type || "audio/mpeg",
+      });
+      setForm((p) => ({ ...p, taskAudioUrl: url }));
+      toast.success("קובץ השמע הועלה");
+    } catch {
+      toast.error("שגיאה בהעלאת השמע");
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
 
   const handlePuzzleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,6 +205,8 @@ export default function AdminStations() {
       taskType: ((s as { taskType?: string }).taskType as TaskType) ?? "photo",
       taskAnswer: (s as { taskAnswer?: string | null }).taskAnswer ?? "",
       taskImageUrl: s.taskImageUrl ?? "",
+      taskAudioUrl: (s as { taskAudioUrl?: string | null }).taskAudioUrl ?? "",
+      skipScratch: (s as { skipScratch?: boolean }).skipScratch ?? false,
       hint1: s.hint1 ?? "",
       hint2: s.hint2 ?? "",
       hint3: s.hint3 ?? "",
@@ -311,9 +348,13 @@ export default function AdminStations() {
               </select>
             </div>
 
-            {form.taskType === "puzzle" && (
+            {(
               <div className="space-y-2">
-                <Label className="text-gray-300">תמונת פאזל * (תיחתך ל-9 אריחים)</Label>
+                <Label className="text-gray-300">
+                  {form.taskType === "puzzle"
+                    ? "תמונת פאזל * (תיחתך ל-9 אריחים)"
+                    : "תמונה מצורפת למשימה (לא חובה — למשל טבלת קודים, תוצג עם אפשרות הגדלה)"}
+                </Label>
                 {form.taskImageUrl && (
                   <img src={form.taskImageUrl} alt="תמונת פאזל" className="w-32 h-32 object-cover rounded-lg border border-[#c9a84c]/30" />
                 )}
@@ -337,6 +378,27 @@ export default function AdminStations() {
                 <p className="text-xs text-gray-500">הבדיקה מתעלמת מרווחים, פסיקים וסימנים — רק אותיות ומספרים נספרים</p>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">קובץ שמע למשימה (לא חובה, עד 3MB)</Label>
+              {form.taskAudioUrl && (
+                <div className="flex items-center gap-2">
+                  <audio controls src={form.taskAudioUrl} className="h-9 flex-1" preload="metadata" />
+                  <button
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, taskAudioUrl: "" }))}
+                    className="text-red-400 text-xs underline shrink-0"
+                  >
+                    הסרה
+                  </button>
+                </div>
+              )}
+              <label className="flex items-center gap-2 cursor-pointer text-[#c9a84c] hover:text-[#f0d080] text-sm w-fit">
+                <Upload className="w-4 h-4" />
+                {uploadingAudio ? "מעלה שמע..." : form.taskAudioUrl ? "החלפת קובץ שמע" : "העלאת קובץ שמע"}
+                <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} disabled={uploadingAudio} />
+              </label>
+            </div>
 
             {form.taskType === "morse" && qrDataUrl && (
               <div className="space-y-2 text-center border border-[#c9a84c]/20 rounded-lg p-3">
@@ -373,6 +435,16 @@ export default function AdminStations() {
             <div className="space-y-1">
               <Label className="text-gray-300">עובדה מעניינת</Label>
               <Textarea value={form.funFact} onChange={f("funFact")} className="bg-[#0a0f1e] border-[#c9a84c]/30 text-white min-h-[60px]" placeholder="עובדה על המקום..." />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="skipScratch"
+                checked={form.skipScratch}
+                onChange={(e) => setForm((p) => ({ ...p, skipScratch: e.target.checked }))}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="skipScratch" className="text-gray-300">ללא כרטיס גירוד (נכנסים ישר לרמז)</Label>
             </div>
             <div className="flex items-center gap-3">
               <input

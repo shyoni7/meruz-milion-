@@ -103,6 +103,7 @@ export const gameRouter = router({
         stationId: z.number(),
         imageBase64: z.string(),
         mimeType: z.string().default("image/jpeg"),
+        caption: z.string().max(500).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -115,6 +116,7 @@ export const gameRouter = router({
         stationId: input.stationId,
         imageUrl: url,
         imageKey: storedKey,
+        caption: input.caption?.trim() || null,
       });
       return { success: true, imageUrl: url };
     }),

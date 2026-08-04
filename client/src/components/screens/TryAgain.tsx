@@ -15,6 +15,8 @@ import HintCenter from "./HintCenter";
 export default function TryAgain() {
   const { currentStation, retryPhoto } = useGame();
   const [showHints, setShowHints] = useState(false);
+  // Note the production team attached to the rejection (set by ControlRoom)
+  const adminNote = localStorage.getItem("hamerutz_last_note");
 
   return (
     <>
@@ -79,11 +81,17 @@ export default function TryAgain() {
               <p className="text-white/90 text-base leading-relaxed mb-2">
                 המשימה עדיין לא אושרה.
               </p>
-              <p className="text-white/60 text-sm leading-relaxed">
-                בדקו שוב את ההוראות.
-                <br />
-                צלמו תמונה חדשה ושלחו אותה שוב.
-              </p>
+              {adminNote ? (
+                <p className="text-gold text-base leading-relaxed font-medium">
+                  💬 הודעה מההפקה: {adminNote}
+                </p>
+              ) : (
+                <p className="text-white/60 text-sm leading-relaxed">
+                  בדקו שוב את ההוראות.
+                  <br />
+                  צלמו תמונה חדשה ושלחו אותה שוב.
+                </p>
+              )}
             </motion.div>
           </div>
 

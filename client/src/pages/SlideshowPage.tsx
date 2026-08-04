@@ -140,6 +140,14 @@ export default function SlideshowPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/20">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => (window.history.length > 1 ? window.history.back() : setLocation("/"))}
+            className="w-8 h-8 rounded-full border border-[#c9a84c]/40 text-[#c9a84c] hover:bg-[#c9a84c]/10 transition-colors flex items-center justify-center"
+            aria-label="חזרה"
+            title="חזרה"
+          >
+            ✕
+          </button>
           <span className="text-[#c9a84c] font-bold text-lg">המירוץ ל-70</span>
           <span className="text-white/40 text-sm">|</span>
           <span className="text-white/70 text-sm">מצגת כל המשתתפים</span>

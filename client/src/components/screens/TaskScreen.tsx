@@ -35,6 +35,9 @@ export default function TaskScreen() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
   const [showLegend, setShowLegend] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<{ base64: string; dataUrl: string } | null>(null);
+  const [caption, setCaption] = useState("");
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const taskType = currentStation.taskType ?? "photo";
 
@@ -45,6 +48,8 @@ export default function TaskScreen() {
     onSuccess: () => {
       toast.success("התמונה הועלתה בהצלחה! 📸");
       setUploading(false);
+      setPendingPhoto(null);
+      setCaption("");
       goToControlRoom();
     },
     onError: () => {
@@ -105,20 +110,25 @@ export default function TaskScreen() {
     // Allow picking the same file again next time
     e.target.value = "";
     if (!file) return;
-    setUploading(true);
     try {
-      const { base64, dataUrl } = await compressImage(file);
-      setPhotoPreview(dataUrl);
-      uploadMutation.mutate({
-        teamId: teamId || 0,
-        stationId: currentStation.dbId ?? currentStation.number,
-        imageBase64: base64,
-        mimeType: "image/jpeg",
-      });
+      const photo = await compressImage(file);
+      setPendingPhoto(photo);
+      setPhotoPreview(photo.dataUrl);
     } catch {
       toast.error("שגיאה בקריאת התמונה, נסו שוב");
-      setUploading(false);
     }
+  };
+
+  const handleUploadPending = () => {
+    if (!pendingPhoto) return;
+    setUploading(true);
+    uploadMutation.mutate({
+      teamId: teamId || 0,
+      stationId: currentStation.dbId ?? currentStation.number,
+      imageBase64: pendingPhoto.base64,
+      mimeType: "image/jpeg",
+      caption: caption.trim() || undefined,
+    });
   };
 
   const handleSendPhoto = () => {
@@ -197,6 +207,35 @@ export default function TaskScreen() {
               </p>
             </motion.div>
 
+            {/* Audio clip (if configured) */}
+            {currentStation.taskAudioUrl && (
+              <motion.div
+                className="glass-card p-3 shrink-0"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.25 }}
+              >
+                <p className="text-gold/70 text-xs mb-2">🔊 האזינו להקלטה:</p>
+                <audio controls src={currentStation.taskAudioUrl} className="w-full" preload="metadata" />
+              </motion.div>
+            )}
+
+            {/* Zoomable attachment image (e.g. code table) — not for puzzles */}
+            {taskType !== "puzzle" && currentStation.taskImageUrl && (
+              <motion.button
+                className="shrink-0 rounded-xl overflow-hidden border border-[#c9a84c]/40 relative"
+                onClick={() => setFullscreenImage(currentStation.taskImageUrl!)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.25 }}
+              >
+                <img src={currentStation.taskImageUrl} alt="קובץ מצורף" className="w-full max-h-48 object-contain bg-black/40" />
+                <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-gold px-2 py-1 rounded-md">
+                  🔍 לחצו להגדלה
+                </span>
+              </motion.button>
+            )}
+
             {/* ── Mission body by type ─────────────────────────────── */}
             <motion.div
               className="flex flex-col gap-3 shrink-0"
@@ -254,19 +293,45 @@ export default function TaskScreen() {
                     className="hidden"
                     onChange={handlePhotoCapture}
                   />
-                  {photoPreview && (
-                    <div className="rounded-xl overflow-hidden border border-[#c9a84c]/30">
-                      <img src={photoPreview} alt="תצוגה מקדימה" className="w-full h-32 object-cover" />
-                    </div>
+                  {pendingPhoto ? (
+                    <>
+                      <div className="rounded-xl overflow-hidden border border-[#c9a84c]/30">
+                        <img src={pendingPhoto.dataUrl} alt="תצוגה מקדימה" className="w-full max-h-56 object-contain bg-black/40" />
+                      </div>
+                      <input
+                        type="text"
+                        value={caption}
+                        onChange={(e) => setCaption(e.target.value)}
+                        placeholder="הוסיפו משפט לתמונה (לא חובה)"
+                        maxLength={200}
+                        className="w-full rounded-xl bg-[oklch(0.1_0.03_250/0.8)] border border-[#c9a84c]/40 text-white text-base py-3 px-4 focus:outline-none focus:border-[#c9a84c]"
+                      />
+                      <button
+                        className="btn-gold flex items-center justify-center gap-2"
+                        onClick={handleUploadPending}
+                        disabled={uploading}
+                      >
+                        <Camera size={16} />
+                        {uploading ? "מעלה תמונה..." : "שלחו לאישור ההפקה"}
+                      </button>
+                      <button
+                        className="btn-outline-gold flex items-center justify-center gap-2"
+                        onClick={handleSendPhoto}
+                        disabled={uploading}
+                      >
+                        צלמו תמונה אחרת
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn-gold flex items-center justify-center gap-2"
+                      onClick={handleSendPhoto}
+                      disabled={uploading}
+                    >
+                      <Camera size={16} />
+                      צלמו תמונה
+                    </button>
                   )}
-                  <button
-                    className="btn-gold flex items-center justify-center gap-2"
-                    onClick={handleSendPhoto}
-                    disabled={uploading}
-                  >
-                    <Camera size={16} />
-                    {uploading ? "מעלה תמונה..." : "צלם ושלח תמונה"}
-                  </button>
                 </>
               )}
             </motion.div>
@@ -303,6 +368,23 @@ export default function TaskScreen() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen image viewer */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <img src={fullscreenImage} alt="תצוגה מלאה" className="max-w-full max-h-full object-contain" />
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white text-xl"
+            onClick={() => setFullscreenImage(null)}
+            aria-label="סגירה"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Hint Center modal */}
       {showHints && <HintCenter onClose={() => setShowHints(false)} />}

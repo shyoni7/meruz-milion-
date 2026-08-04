@@ -12,7 +12,7 @@
  * stations are used only as a fallback while loading / when the DB is empty.
  */
 
-import React, { createContext, useContext, useMemo, useReducer } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
 import {
   GameState,
   Station,
@@ -114,6 +114,8 @@ type DbStation = {
   taskDescription: string;
   taskImageUrl?: string | null;
   taskType?: string;
+  taskAudioUrl?: string | null;
+  skipScratch?: boolean;
   hint1: string | null;
   hint2: string | null;
   hint3: string | null;
@@ -127,6 +129,8 @@ function mapDbStation(s: DbStation, idx: number): Station {
     dbId: s.id,
     taskType: (s.taskType as Station["taskType"]) ?? "photo",
     taskImageUrl: s.taskImageUrl || undefined,
+    taskAudioUrl: s.taskAudioUrl || undefined,
+    skipScratch: s.skipScratch ?? false,
     number: idx + 1,
     name: s.title,
     image: s.clueImageUrl ?? "",
@@ -188,6 +192,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Clamp the index in case the station list shrank while playing
   const safeIndex = Math.min(state.currentStationIndex, stations.length - 1);
   const currentStation = stations[safeIndex];
+
+  // Stations marked skipScratch jump straight to the clue screen
+  useEffect(() => {
+    if (state.currentScreen === "SCRATCH" && currentStation?.skipScratch) {
+      dispatch({ type: "SCRATCH_REVEALED" });
+    }
+  }, [state.currentScreen, currentStation]);
 
   const value: GameContextValue = {
     state,

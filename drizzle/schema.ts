@@ -58,6 +58,10 @@ export const stations = pgTable("stations", {
   taskType: varchar("taskType", { length: 20 }).default("photo").notNull(),
   /** Expected answer for coordinates/morse missions (also drives the morse QR) */
   taskAnswer: text("taskAnswer"),
+  /** Skip the scratch-card intro and open straight on the clue */
+  skipScratch: boolean("skipScratch").default(false).notNull(),
+  /** Optional audio clip played on the mission screen */
+  taskAudioUrl: text("taskAudioUrl"),
   hint1: text("hint1"),
   hint2: text("hint2"),
   hint3: text("hint3"),
@@ -96,6 +100,8 @@ export const submissions = pgTable("submissions", {
   stationId: integer("stationId").notNull(),
   imageUrl: text("imageUrl").notNull(),
   imageKey: text("imageKey").notNull(),
+  /** Optional message the team attached to the photo */
+  caption: text("caption"),
   status: submissionStatusEnum("status").default("pending").notNull(),
   adminNote: text("adminNote"),
   submittedAt: timestamp("submittedAt").defaultNow().notNull(),

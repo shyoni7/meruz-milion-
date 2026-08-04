@@ -18,8 +18,12 @@ export interface Station {
   dbId?: number;
   /** Mission type — photo (default), puzzle, coordinates or morse. */
   taskType?: TaskType;
-  /** Image used by puzzle missions. */
+  /** Image used by puzzle missions, or shown as a zoomable attachment (e.g. code table). */
   taskImageUrl?: string;
+  /** Optional audio clip played on the mission screen. */
+  taskAudioUrl?: string;
+  /** Skip the scratch-card intro and open straight on the clue. */
+  skipScratch?: boolean;
   number: number;
   name: string;
   image: string; // e.g. "02-netanya" — will be used as placeholder label

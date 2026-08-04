@@ -97,6 +97,8 @@ export const adminRouter = router({
         taskImageUrl: z.string().optional(),
         taskType: z.enum(["photo", "puzzle", "coordinates", "morse"]).optional(),
         taskAnswer: z.string().optional(),
+        skipScratch: z.boolean().optional(),
+        taskAudioUrl: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -127,6 +129,8 @@ export const adminRouter = router({
         taskImageUrl: z.string().optional(),
         taskType: z.enum(["photo", "puzzle", "coordinates", "morse"]).optional(),
         taskAnswer: z.string().optional(),
+        skipScratch: z.boolean().optional(),
+        taskAudioUrl: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -210,7 +214,13 @@ export const adminRouter = router({
       await requireAdmin(input.token);
       const { storagePut } = await import("../storage");
       const buffer = Buffer.from(input.imageBase64, "base64");
-      const key = `stations/image-${Date.now()}.jpg`;
+      const EXT: Record<string, string> = {
+        "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
+        "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
+        "audio/ogg": "ogg", "audio/wav": "wav", "audio/webm": "webm",
+      };
+      const ext = EXT[input.mimeType] ?? "bin";
+      const key = `stations/file-${Date.now()}.${ext}`;
       const { url } = await storagePut(key, buffer, input.mimeType);
       return { url };
     }),
