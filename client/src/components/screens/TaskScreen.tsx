@@ -34,6 +34,7 @@ export default function TaskScreen() {
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
+  const [answerCorrect, setAnswerCorrect] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<{ base64: string; dataUrl: string } | null>(null);
   const [caption, setCaption] = useState("");
@@ -62,7 +63,7 @@ export default function TaskScreen() {
     onSuccess: (res) => {
       if (res.correct) {
         toast.success("תשובה נכונה! 🎉");
-        approveMission();
+        setAnswerCorrect(true);
       } else {
         toast.error("תשובה שגויה, נסו שוב");
       }
@@ -144,7 +145,17 @@ export default function TaskScreen() {
   const gradient = STATION_GRADIENTS[currentStation.image] ||
     "linear-gradient(135deg, oklch(0.18 0.04 250), oklch(0.13 0.03 250))";
 
-  const answerInput = (placeholder: string) => (
+  const answerInput = (placeholder: string) =>
+    answerCorrect ? (
+      <div className="flex flex-col gap-3">
+        <div className="glass-card p-4 text-center border-green-500/40">
+          <p className="text-gold font-bold text-lg">🎉 תשובה נכונה!</p>
+        </div>
+        <button className="btn-gold flex items-center justify-center gap-2" onClick={approveMission}>
+          עברו למשימה הבאה ⬅
+        </button>
+      </div>
+    ) : (
     <div className="flex flex-col gap-3">
       <input
         type="text"

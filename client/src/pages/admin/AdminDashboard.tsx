@@ -39,6 +39,27 @@ export default function AdminDashboard() {
     }
     prevPendingRef.current = pendingSubmissions;
   }, [pendingSubmissions, submissions]);
+
+  // Notify when a team advances to the next station or finishes the race
+  const prevTeamsRef = useRef<Record<number, { idx: number; finished: boolean }> | null>(null);
+  useEffect(() => {
+    if (!teams) return;
+    const prev = prevTeamsRef.current;
+    if (prev) {
+      for (const t of teams) {
+        const p = prev[t.id];
+        if (!p) continue;
+        if (t.isFinished && !p.finished) {
+          toast.success(`🏆 קבוצת "${t.teamName}" סיימה את המירוץ!`);
+        } else if (t.currentStationIndex > p.idx) {
+          toast.info(`🏁 קבוצת "${t.teamName}" עברה לתחנה ${t.currentStationIndex + 1}`);
+        }
+      }
+    }
+    prevTeamsRef.current = Object.fromEntries(
+      teams.map((t) => [t.id, { idx: t.currentStationIndex, finished: t.isFinished }])
+    );
+  }, [teams]);
   const totalStations = stations?.length ?? 4;
 
   // Sort teams for leaderboard: finished first, then by station index desc

@@ -50,14 +50,9 @@ export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps
 
   const isSolved = useMemo(() => board.every((tile, i) => tile === i), [board]);
 
-  // Depend only on isSolved: adding `solved` here caused the cleanup to
-  // cancel the advance timer the moment setSolved re-ran the effect.
+  // No auto-advance — solving reveals the full image and a continue button.
   useEffect(() => {
-    if (!isSolved) return;
-    setSolved(true);
-    // Show the completed image briefly before advancing
-    const t = setTimeout(() => onSolvedRef.current(), 1200);
-    return () => clearTimeout(t);
+    if (isSolved) setSolved(true);
   }, [isSolved]);
 
   const handleTap = (pos: number) => {
@@ -106,7 +101,7 @@ export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps
             🎉 הפאזל הושלם!
           </p>
           <button className="btn-gold w-full" onClick={() => onSolvedRef.current()}>
-            המשיכו לתחנה הבאה ⬅
+            עברו למשימה הבאה ⬅
           </button>
         </div>
       )}
