@@ -3,7 +3,7 @@
  * Tap a tile next to the empty slot to slide it. Calls onSolved when done.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const SIZE = 3;
 const EMPTY = SIZE * SIZE - 1; // last tile is the empty slot
@@ -21,17 +21,20 @@ function neighbors(idx: number): number[] {
 
 /** Shuffle by performing random valid moves from the solved state (always solvable) */
 function shuffled(): number[] {
-  const board = Array.from({ length: SIZE * SIZE }, (_, i) => i);
-  let emptyPos = board.indexOf(EMPTY);
-  let prev = -1;
-  for (let i = 0; i < 80; i++) {
-    const options = neighbors(emptyPos).filter((n) => n !== prev);
-    const pick = options[Math.floor(Math.random() * options.length)];
-    [board[emptyPos], board[pick]] = [board[pick], board[emptyPos]];
-    prev = emptyPos;
-    emptyPos = pick;
+  for (;;) {
+    const board = Array.from({ length: SIZE * SIZE }, (_, i) => i);
+    let emptyPos = board.indexOf(EMPTY);
+    let prev = -1;
+    for (let i = 0; i < 80; i++) {
+      const options = neighbors(emptyPos).filter((n) => n !== prev);
+      const pick = options[Math.floor(Math.random() * options.length)];
+      [board[emptyPos], board[pick]] = [board[pick], board[emptyPos]];
+      prev = emptyPos;
+      emptyPos = pick;
+    }
+    // Extremely unlikely, but never hand out an already-solved board
+    if (!board.every((tile, i) => tile === i)) return board;
   }
-  return board;
 }
 
 interface SlidingPuzzleProps {
@@ -42,17 +45,20 @@ interface SlidingPuzzleProps {
 export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps) {
   const [board, setBoard] = useState<number[]>(() => shuffled());
   const [solved, setSolved] = useState(false);
+  const onSolvedRef = useRef(onSolved);
+  onSolvedRef.current = onSolved;
 
   const isSolved = useMemo(() => board.every((tile, i) => tile === i), [board]);
 
+  // Depend only on isSolved: adding `solved` here caused the cleanup to
+  // cancel the advance timer the moment setSolved re-ran the effect.
   useEffect(() => {
-    if (isSolved && !solved) {
-      setSolved(true);
-      // Show the completed image briefly before advancing
-      const t = setTimeout(onSolved, 1200);
-      return () => clearTimeout(t);
-    }
-  }, [isSolved, solved, onSolved]);
+    if (!isSolved) return;
+    setSolved(true);
+    // Show the completed image briefly before advancing
+    const t = setTimeout(() => onSolvedRef.current(), 1200);
+    return () => clearTimeout(t);
+  }, [isSolved]);
 
   const handleTap = (pos: number) => {
     if (solved) return;
@@ -95,9 +101,14 @@ export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps
         })}
       </div>
       {solved && (
-        <p className="text-center text-gold font-bold text-lg mt-3 animate-pulse">
-          🎉 הפאזל הושלם!
-        </p>
+        <div className="flex flex-col gap-2 mt-3">
+          <p className="text-center text-gold font-bold text-lg animate-pulse">
+            🎉 הפאזל הושלם!
+          </p>
+          <button className="btn-gold w-full" onClick={() => onSolvedRef.current()}>
+            המשיכו לתחנה הבאה ⬅
+          </button>
+        </div>
       )}
     </div>
   );
