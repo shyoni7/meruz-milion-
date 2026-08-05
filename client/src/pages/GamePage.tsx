@@ -10,7 +10,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGame } from "@/contexts/GameContext";
 import ClueScreen from "@/components/screens/ClueScreen";
 import TaskScreen from "@/components/screens/TaskScreen";
@@ -36,7 +36,7 @@ const screenTransition = {
 };
 
 export default function GamePage() {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { currentScreen, currentStationIndex, isFinished } = state;
   const [gameStarted, setGameStarted] = useState(false);
   const [teamId, setTeamId] = useState<number | null>(() => {
@@ -48,6 +48,37 @@ export default function GamePage() {
 
   const advanceStation = trpc.game.advanceStation.useMutation();
   const finishGame = trpc.game.finishGame.useMutation();
+
+  // Restore progress from the server after a refresh/crash — the DB is the
+  // source of truth for which station the team is on.
+  const restoredRef = useRef(false);
+  const { data: teamData, error: teamError } = trpc.game.getTeam.useQuery(
+    { teamId: teamId ?? 0 },
+    { enabled: !!teamId, retry: false }
+  );
+
+  useEffect(() => {
+    if (!teamData || restoredRef.current) return;
+    restoredRef.current = true;
+    if (teamData.isFinished || teamData.currentStationIndex > 0) {
+      dispatch({
+        type: "RESTORE_PROGRESS",
+        index: teamData.currentStationIndex,
+        finished: teamData.isFinished,
+      });
+      setGameStarted(true);
+    }
+  }, [teamData]);
+
+  // If the team was deleted by the admin, forget it and re-register
+  useEffect(() => {
+    if (teamError?.data?.code === "NOT_FOUND") {
+      localStorage.removeItem("hamerutz_team_id");
+      localStorage.removeItem("hamerutz_team_name");
+      setTeamId(null);
+      setTeamName("");
+    }
+  }, [teamError]);
 
   // Unique key for AnimatePresence — changes on screen or station change
   const screenKey = `${currentStationIndex}-${currentScreen}`;

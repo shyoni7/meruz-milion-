@@ -32,6 +32,7 @@ type GameAction =
   | { type: "RETRY_PHOTO" }            // TRY_AGAIN → TASK (retake the photo)
   | { type: "NEXT_STATION"; totalStations: number } // COMPLETE → next CLUE (or finish)
   | { type: "REVEAL_HINT"; maxHints: number }       // reveal next hint
+  | { type: "RESTORE_PROGRESS"; index: number; finished: boolean } // resume from DB
   | { type: "RESET_GAME" };            // restart from beginning
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
@@ -90,6 +91,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return { ...state, hintsRevealed: state.hintsRevealed + 1 };
       }
       return state;
+    }
+
+    case "RESTORE_PROGRESS": {
+      // Resume where the team left off (server is the source of truth)
+      return {
+        ...state,
+        currentStationIndex: action.index,
+        currentScreen: "SCRATCH",
+        hintsRevealed: 0,
+        isFinished: action.finished,
+      };
     }
 
     case "RESET_GAME": {
