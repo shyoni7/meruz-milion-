@@ -127,6 +127,7 @@ type DbStation = {
   taskImageUrl?: string | null;
   taskType?: string;
   taskAudioUrl?: string | null;
+  taskAudioUrls?: string | null;
   skipScratch?: boolean;
   hint1: string | null;
   hint2: string | null;
@@ -135,6 +136,16 @@ type DbStation = {
   funFact: string | null;
 };
 
+function parseAudioUrls(s: DbStation): string[] {
+  try {
+    const arr = s.taskAudioUrls ? (JSON.parse(s.taskAudioUrls) as string[]) : [];
+    if (Array.isArray(arr) && arr.length > 0) return arr.filter(Boolean);
+  } catch {
+    // fall through to legacy single url
+  }
+  return s.taskAudioUrl ? [s.taskAudioUrl] : [];
+}
+
 function mapDbStation(s: DbStation, idx: number): Station {
   return {
     id: `station-${s.id}`,
@@ -142,6 +153,7 @@ function mapDbStation(s: DbStation, idx: number): Station {
     taskType: (s.taskType as Station["taskType"]) ?? "photo",
     taskImageUrl: s.taskImageUrl || undefined,
     taskAudioUrl: s.taskAudioUrl || undefined,
+    audioUrls: parseAudioUrls(s),
     skipScratch: s.skipScratch ?? false,
     number: idx + 1,
     name: s.title,

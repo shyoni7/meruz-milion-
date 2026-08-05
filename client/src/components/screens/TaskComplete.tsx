@@ -14,6 +14,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useGame } from "@/contexts/GameContext";
+import { trpc } from "@/lib/trpc";
 
 const BG_SUCCESS = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/bg-success-iGeqHPygneH9kHBLgKfVBi.webp";
 
@@ -21,6 +22,11 @@ export default function TaskComplete() {
   const { currentStation, nextStation, state, stations } = useGame();
   const confettiFired = useRef(false);
   const isLastStation = state.currentStationIndex === stations.length - 1;
+  const teamId = parseInt(localStorage.getItem("hamerutz_team_id") ?? "0", 10);
+  const { data: stats } = trpc.game.getTeamStats.useQuery(
+    { teamId },
+    { enabled: !!teamId }
+  );
 
   useEffect(() => {
     if (confettiFired.current) return;
@@ -96,6 +102,20 @@ export default function TaskComplete() {
               {currentStation.fact}
             </p>
           </motion.div>
+
+          {/* Live standing */}
+          {stats?.rank && stats.totalTeams > 1 && (
+            <motion.div
+              className="glass-card p-4 w-full text-center"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.75 }}
+            >
+              <p className="text-white/90 text-lg font-bold">
+                🏁 אתם במקום ה-{stats.rank} מתוך {stats.totalTeams} קבוצות!
+              </p>
+            </motion.div>
+          )}
         </div>
 
         {/* CTA */}

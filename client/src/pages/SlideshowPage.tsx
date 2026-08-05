@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 
 interface Slide {
   imageUrl: string;
-  mediaType: string;
+  mediaType: string; // image | video | blessing
   stationTitle: string;
   teamName: string;
   stationIndex: number;
@@ -23,6 +23,7 @@ export default function SlideshowPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data, isLoading, isError, refetch } = trpc.slideshow.getAllSlideshowData.useQuery();
+  const { data: blessingsData } = trpc.game.getBlessings.useQuery();
 
   const captionMutation = trpc.slideshow.generateCaptions.useMutation({
     onSuccess: (res) => {
@@ -59,7 +60,15 @@ export default function SlideshowPage() {
         captions[i] ??
         `${sub.station?.title ?? "תחנה"} — רגע בלתי נשכח! 🌟`,
     }));
-    setSlides(built);
+    const blessingSlides: Slide[] = (blessingsData ?? []).map((b) => ({
+      imageUrl: "",
+      mediaType: "blessing",
+      stationTitle: "ברכה",
+      teamName: b.teamName ?? "",
+      stationIndex: 0,
+      caption: b.text,
+    }));
+    setSlides([...built, ...blessingSlides]);
     setIsPlaying(true);
   }, [captionsReady, data]);
 
@@ -172,7 +181,14 @@ export default function SlideshowPage() {
               className="absolute inset-0 flex flex-col"
             >
               <div className="flex-1 relative">
-                {current.mediaType === "video" ? (
+                {current.mediaType === "blessing" ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#0d1526] to-[#0a0f1e] px-8">
+                    <div className="max-w-2xl text-center">
+                      <p className="text-[#c9a84c] text-sm tracking-widest uppercase mb-4">💌 ברכה מקבוצת {current.teamName}</p>
+                      <p className="text-white text-3xl leading-relaxed font-medium">{current.caption}</p>
+                    </div>
+                  </div>
+                ) : current.mediaType === "video" ? (
                   <video
                     src={current.imageUrl}
                     autoPlay
@@ -188,24 +204,30 @@ export default function SlideshowPage() {
                     className="w-full h-full object-cover"
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1e] via-transparent to-transparent" />
-                {/* Station badge — top right */}
-                <div className="absolute top-4 right-4 bg-[#c9a84c]/90 text-[#0a0f1e] font-bold text-sm px-3 py-1 rounded-full">
-                  תחנה {current.stationIndex}
-                </div>
-                {/* Team badge — top left */}
-                <div className="absolute top-4 left-4 bg-white/10 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full border border-white/20">
-                  {current.teamName}
-                </div>
+                {current.mediaType !== "blessing" && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1e] via-transparent to-transparent" />
+                    {/* Station badge — top right */}
+                    <div className="absolute top-4 right-4 bg-[#c9a84c]/90 text-[#0a0f1e] font-bold text-sm px-3 py-1 rounded-full">
+                      תחנה {current.stationIndex}
+                    </div>
+                    {/* Team badge — top left */}
+                    <div className="absolute top-4 left-4 bg-white/10 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full border border-white/20">
+                      {current.teamName}
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="px-6 py-5 bg-[#0a0f1e]">
-                <p className="text-[#c9a84c] font-bold text-lg mb-1">
-                  {current.stationTitle}
-                </p>
-                <p className="text-white/80 text-base leading-relaxed">
-                  {current.caption}
-                </p>
-              </div>
+              {current.mediaType !== "blessing" && (
+                <div className="px-6 py-5 bg-[#0a0f1e]">
+                  <p className="text-[#c9a84c] font-bold text-lg mb-1">
+                    {current.stationTitle}
+                  </p>
+                  <p className="text-white/80 text-base leading-relaxed">
+                    {current.caption}
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

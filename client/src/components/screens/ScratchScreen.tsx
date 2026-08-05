@@ -9,7 +9,7 @@
 
 import { motion } from "framer-motion";
 import { useGame } from "@/contexts/GameContext";
-import ScratchCard from "@/components/ScratchCard";
+import EnvelopeReveal from "@/components/EnvelopeReveal";
 
 const BG_HERO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv242e3yexMmfJnHMtiQ/bg-hero-FcZMpxxMxUGKgQSbRFzK7s.webp";
 
@@ -51,20 +51,19 @@ export default function ScratchScreen() {
             {currentStation.name}
           </h2>
           <p className="text-white/50 text-sm">
-            גרדו את הכרטיס כדי לגלות את הרמז לתחנה הבאה
+            תלשו את הסרט הדביק ופתחו את המעטפה כדי לגלות את הרמז
           </p>
         </motion.div>
 
-        {/* Scratch card */}
+        {/* Sealed envelope */}
         <motion.div
-          className="flex-1 flex items-center"
+          className="flex-1 flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <ScratchCard
+          <EnvelopeReveal
             stationNumber={currentStation.number}
-            revealText={currentStation.clue.text}
             onRevealed={scratchRevealed}
           />
         </motion.div>

@@ -22,6 +22,7 @@ import SplashScreen from "@/components/screens/SplashScreen";
 import ScratchScreen from "@/components/screens/ScratchScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
 import { trpc } from "@/lib/trpc";
+import MissionTimer from "@/components/MissionTimer";
 
 // Screen transition variants — cinematic forward slide
 const screenVariants = {
@@ -48,6 +49,18 @@ export default function GamePage() {
 
   const advanceStation = trpc.game.advanceStation.useMutation();
   const finishGame = trpc.game.finishGame.useMutation();
+  const [missionStartedAt, setMissionStartedAt] = useState<Date | null>(null);
+  const startStation = trpc.game.startStation.useMutation({
+    onSuccess: (res) => setMissionStartedAt(new Date(res.startedAt)),
+  });
+
+  // Start (or resume) the station timing log whenever the team enters a station
+  useEffect(() => {
+    if (teamId && gameStarted && !isFinished) {
+      startStation.mutate({ teamId, stationIndex: currentStationIndex });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, gameStarted, currentStationIndex, isFinished]);
 
   // Restore progress from the server after a refresh/crash — the DB is the
   // source of truth for which station the team is on.
@@ -171,6 +184,10 @@ export default function GamePage() {
   }
 
   return (
+    <>
+      {missionStartedAt && currentScreen !== "COMPLETE" && (
+        <MissionTimer startedAt={missionStartedAt} />
+      )}
     <AnimatePresence mode="wait">
       <motion.div
         key={screenKey}
@@ -189,5 +206,6 @@ export default function GamePage() {
         {currentScreen === "TRY_AGAIN" && <TryAgain />}
       </motion.div>
     </AnimatePresence>
+    </>
   );
 }

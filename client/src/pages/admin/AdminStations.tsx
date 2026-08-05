@@ -27,6 +27,7 @@ type StationForm = {
   taskAnswer: string;
   taskImageUrl: string;
   taskAudioUrl: string;
+  taskAudioUrls: string[];
   skipScratch: boolean;
   hint1: string;
   hint2: string;
@@ -47,6 +48,7 @@ const emptyForm: StationForm = {
   taskAnswer: "",
   taskImageUrl: "",
   taskAudioUrl: "",
+  taskAudioUrls: [],
   skipScratch: false,
   hint1: "",
   hint2: "",
@@ -139,7 +141,7 @@ export default function AdminStations() {
         imageBase64: dataUrl.split(",")[1],
         mimeType: file.type || "audio/mpeg",
       });
-      setForm((p) => ({ ...p, taskAudioUrl: url }));
+      setForm((p) => ({ ...p, taskAudioUrls: [...p.taskAudioUrls, url] }));
       toast.success("קובץ השמע הועלה");
     } catch {
       toast.error("שגיאה בהעלאת השמע");
@@ -206,6 +208,15 @@ export default function AdminStations() {
       taskAnswer: (s as { taskAnswer?: string | null }).taskAnswer ?? "",
       taskImageUrl: s.taskImageUrl ?? "",
       taskAudioUrl: (s as { taskAudioUrl?: string | null }).taskAudioUrl ?? "",
+      taskAudioUrls: (() => {
+        const raw = (s as { taskAudioUrls?: string | null }).taskAudioUrls;
+        try {
+          const arr = raw ? (JSON.parse(raw) as string[]) : [];
+          if (Array.isArray(arr) && arr.length > 0) return arr;
+        } catch { /* legacy */ }
+        const legacy = (s as { taskAudioUrl?: string | null }).taskAudioUrl;
+        return legacy ? [legacy] : [];
+      })(),
       skipScratch: (s as { skipScratch?: boolean }).skipScratch ?? false,
       hint1: s.hint1 ?? "",
       hint2: s.hint2 ?? "",
@@ -232,7 +243,11 @@ export default function AdminStations() {
       return;
     }
     // The number input stores its value as a string — the server expects a number
-    const payload = { ...form, orderIndex: Number(form.orderIndex) || 1 };
+    const payload = {
+      ...form,
+      orderIndex: Number(form.orderIndex) || 1,
+      taskAudioUrls: JSON.stringify(form.taskAudioUrls),
+    };
     if (editingId) {
       updateMutation.mutate({ token: token!, id: editingId, ...payload });
     } else {
@@ -380,22 +395,28 @@ export default function AdminStations() {
             )}
 
             <div className="space-y-2">
-              <Label className="text-gray-300">קובץ שמע למשימה (לא חובה, עד 3MB)</Label>
-              {form.taskAudioUrl && (
-                <div className="flex items-center gap-2">
-                  <audio controls src={form.taskAudioUrl} className="h-9 flex-1" preload="metadata" />
+              <Label className="text-gray-300">קובצי שמע למשימה (לא חובה, עד 3MB לקובץ)</Label>
+              {form.taskAudioUrls.map((url, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <audio controls src={url} className="h-9 flex-1" preload="metadata" />
                   <button
                     type="button"
-                    onClick={() => setForm((p) => ({ ...p, taskAudioUrl: "" }))}
+                    onClick={() =>
+                      setForm((p) => ({ ...p, taskAudioUrls: p.taskAudioUrls.filter((_, j) => j !== i) }))
+                    }
                     className="text-red-400 text-xs underline shrink-0"
                   >
                     הסרה
                   </button>
                 </div>
-              )}
+              ))}
               <label className="flex items-center gap-2 cursor-pointer text-[#c9a84c] hover:text-[#f0d080] text-sm w-fit">
                 <Upload className="w-4 h-4" />
-                {uploadingAudio ? "מעלה שמע..." : form.taskAudioUrl ? "החלפת קובץ שמע" : "העלאת קובץ שמע"}
+                {uploadingAudio
+                  ? "מעלה שמע..."
+                  : form.taskAudioUrls.length > 0
+                    ? "הוספת קובץ שמע נוסף"
+                    : "העלאת קובץ שמע"}
                 <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} disabled={uploadingAudio} />
               </label>
             </div>

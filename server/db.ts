@@ -1,12 +1,14 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import {
   adminUsers,
+  blessings,
   InsertAdminUser,
   InsertStation,
   InsertSubmission,
   InsertTeam,
   InsertUser,
+  stationLogs,
   stations,
   submissions,
   teams,
@@ -227,6 +229,81 @@ export async function deleteTeam(id: number) {
   await Promise.all(teamSubs.map((s) => storageDelete(s.imageKey).catch(() => {})));
   await db.delete(submissions).where(eq(submissions.teamId, id));
   await db.delete(teams).where(eq(teams.id, id));
+}
+
+// ─── Station timing logs ───────────────────────────────────────────────────
+
+/** Record when a team starts a station. Keeps the earliest start (idempotent). */
+export async function startStationLog(teamId: number, stationIndex: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await db
+    .select()
+    .from(stationLogs)
+    .where(and(eq(stationLogs.teamId, teamId), eq(stationLogs.stationIndex, stationIndex)))
+    .limit(1);
+  if (existing[0]) return existing[0];
+  const [created] = await db
+    .insert(stationLogs)
+    .values({ teamId, stationIndex })
+    .returning();
+  return created ?? null;
+}
+
+/** Mark a station as completed (first completion wins). */
+export async function completeStationLog(teamId: number, stationIndex: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(stationLogs)
+    .set({ completedAt: new Date() })
+    .where(
+      and(
+        eq(stationLogs.teamId, teamId),
+        eq(stationLogs.stationIndex, stationIndex),
+        isNull(stationLogs.completedAt)
+      )
+    );
+}
+
+/** Close any still-open logs for a team (used when the race is finished). */
+export async function completeOpenLogs(teamId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(stationLogs)
+    .set({ completedAt: new Date() })
+    .where(and(eq(stationLogs.teamId, teamId), isNull(stationLogs.completedAt)));
+}
+
+export async function getLogsByTeam(teamId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(stationLogs)
+    .where(eq(stationLogs.teamId, teamId))
+    .orderBy(stationLogs.stationIndex);
+}
+
+export async function getAllLogs() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(stationLogs).orderBy(stationLogs.startedAt);
+}
+
+// ─── Blessings ─────────────────────────────────────────────────────────────
+
+export async function addBlessing(teamId: number, teamName: string | null, text: string) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.insert(blessings).values({ teamId, teamName, text });
+}
+
+export async function getAllBlessings() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(blessings).orderBy(blessings.createdAt);
 }
 
 // ─── Admin user queries ────────────────────────────────────────────────────

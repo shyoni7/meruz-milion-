@@ -25,6 +25,11 @@ export default function AdminDashboard() {
     { token: token! },
     { enabled: !!token, refetchInterval: 10_000 }
   );
+  // Live activity feed
+  const { data: activity } = trpc.admin.getActivity.useQuery(
+    { token: token!, limit: 30 },
+    { enabled: !!token, refetchInterval: 10_000 }
+  );
 
   const finishedTeams = teams?.filter((t) => t.isFinished).length ?? 0;
   const pendingSubmissions = submissions?.filter((s) => s.status === "pending").length ?? 0;
@@ -176,6 +181,30 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-400">מצגת כל המשתתפים לפי תחנות</p>
           </button>
         </div>
+
+        {/* Live activity feed */}
+        <Card className="bg-[#0d1526] border-[#c9a84c]/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[#c9a84c] text-lg">📋 פעילות אחרונה — כל הקבוצות</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!activity || activity.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4 text-center">אין פעילות עדיין</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto flex flex-col gap-1 pr-1">
+                {activity.map((ev, i) => (
+                  <div key={i} className="flex items-start gap-2 py-1.5 border-b border-white/5 last:border-0">
+                    <span className="shrink-0">{ev.icon}</span>
+                    <p className="text-sm text-white/85 flex-1">{ev.text}</p>
+                    <span className="text-xs text-gray-500 shrink-0 font-mono" dir="ltr">
+                      {new Date(ev.at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Teams Table */}
         {/* ─── LEADERBOARD ─────────────────────────────────────────────── */}

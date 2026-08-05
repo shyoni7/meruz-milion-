@@ -60,8 +60,10 @@ export const stations = pgTable("stations", {
   taskAnswer: text("taskAnswer"),
   /** Skip the scratch-card intro and open straight on the clue */
   skipScratch: boolean("skipScratch").default(false).notNull(),
-  /** Optional audio clip played on the mission screen */
+  /** Optional audio clip played on the mission screen (legacy single) */
   taskAudioUrl: text("taskAudioUrl"),
+  /** JSON array of audio clip URLs played on the mission screen */
+  taskAudioUrls: text("taskAudioUrls"),
   hint1: text("hint1"),
   hint2: text("hint2"),
   hint3: text("hint3"),
@@ -112,3 +114,27 @@ export const submissions = pgTable("submissions", {
 
 export type Submission = typeof submissions.$inferSelect;
 export type InsertSubmission = typeof submissions.$inferInsert;
+
+// ─── Station timing logs (זמני תחנות) ──────────────────────────────────────
+export const stationLogs = pgTable("station_logs", {
+  id: serial("id").primaryKey(),
+  teamId: integer("teamId").notNull(),
+  stationIndex: integer("stationIndex").notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type StationLog = typeof stationLogs.$inferSelect;
+export type InsertStationLog = typeof stationLogs.$inferInsert;
+
+// ─── Blessings (ברכות לחתן השמחה) ──────────────────────────────────────────
+export const blessings = pgTable("blessings", {
+  id: serial("id").primaryKey(),
+  teamId: integer("teamId").notNull(),
+  teamName: varchar("teamName", { length: 255 }),
+  text: text("text").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Blessing = typeof blessings.$inferSelect;
+export type InsertBlessing = typeof blessings.$inferInsert;

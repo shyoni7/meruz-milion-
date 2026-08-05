@@ -22,6 +22,8 @@ export interface Station {
   taskImageUrl?: string;
   /** Optional audio clip played on the mission screen. */
   taskAudioUrl?: string;
+  /** All audio clips for the mission screen (parsed from taskAudioUrls JSON). */
+  audioUrls?: string[];
   /** Skip the scratch-card intro and open straight on the clue. */
   skipScratch?: boolean;
   number: number;

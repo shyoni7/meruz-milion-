@@ -218,16 +218,18 @@ export default function TaskScreen() {
               </p>
             </motion.div>
 
-            {/* Audio clip (if configured) */}
-            {currentStation.taskAudioUrl && (
+            {/* Audio clips (if configured) */}
+            {(currentStation.audioUrls?.length ?? 0) > 0 && (
               <motion.div
-                className="glass-card p-3 shrink-0"
+                className="glass-card p-3 shrink-0 flex flex-col gap-2"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.25 }}
               >
-                <p className="text-gold/70 text-xs mb-2">🔊 האזינו להקלטה:</p>
-                <audio controls src={currentStation.taskAudioUrl} className="w-full" preload="metadata" />
+                <p className="text-gold/70 text-xs">🔊 האזינו {currentStation.audioUrls!.length > 1 ? "להקלטות" : "להקלטה"}:</p>
+                {currentStation.audioUrls!.map((url, i) => (
+                  <audio key={i} controls src={url} className="w-full" preload="metadata" />
+                ))}
               </motion.div>
             )}
 

@@ -1,12 +1,19 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
+  addBlessing,
+  completeOpenLogs,
+  completeStationLog,
   createTeam,
   getActiveStations,
+  getAllBlessings,
+  getAllTeams,
+  getLogsByTeam,
   getStationById,
   getSubmissionsByTeam,
   getTeamById,
   markTeamFinished,
+  startStationLog,
   updateTeamProgress,
 } from "../db";
 import { storagePut } from "../storage";
@@ -84,6 +91,10 @@ export const gameRouter = router({
     .input(z.object({ teamId: z.number(), nextIndex: z.number() }))
     .mutation(async ({ input }) => {
       await updateTeamProgress(input.teamId, input.nextIndex);
+      // Close the timing log of the station that was just completed
+      if (input.nextIndex > 0) {
+        await completeStationLog(input.teamId, input.nextIndex - 1).catch(() => {});
+      }
       return { success: true };
     }),
 
@@ -92,8 +103,64 @@ export const gameRouter = router({
     .input(z.object({ teamId: z.number() }))
     .mutation(async ({ input }) => {
       await markTeamFinished(input.teamId);
+      await completeOpenLogs(input.teamId).catch(() => {});
       return { success: true };
     }),
+
+  // Record that a team entered a station (idempotent). Returns startedAt for
+  // the on-screen mission timer.
+  startStation: publicProcedure
+    .input(z.object({ teamId: z.number(), stationIndex: z.number() }))
+    .mutation(async ({ input }) => {
+      const log = await startStationLog(input.teamId, input.stationIndex);
+      return { startedAt: log?.startedAt ?? new Date() };
+    }),
+
+  // Team standing + per-station times (rank revealed mid-race and at the end)
+  getTeamStats: publicProcedure
+    .input(z.object({ teamId: z.number() }))
+    .query(async ({ input }) => {
+      const [allTeams, logs] = await Promise.all([getAllTeams(), getLogsByTeam(input.teamId)]);
+      const ranked = [...allTeams].sort((a, b) => {
+        if (a.isFinished !== b.isFinished) return a.isFinished ? -1 : 1;
+        if (a.isFinished && b.isFinished) {
+          return (a.finishedAt?.getTime() ?? 0) - (b.finishedAt?.getTime() ?? 0);
+        }
+        if (a.currentStationIndex !== b.currentStationIndex) {
+          return b.currentStationIndex - a.currentStationIndex;
+        }
+        return (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
+      });
+      const rank = ranked.findIndex((t) => t.id === input.teamId) + 1;
+      const me = allTeams.find((t) => t.id === input.teamId);
+      const totalMs =
+        me?.isFinished && me.finishedAt
+          ? me.finishedAt.getTime() - me.startedAt.getTime()
+          : null;
+      return {
+        rank: rank || null,
+        totalTeams: allTeams.length,
+        totalMs,
+        stations: logs.map((l) => ({
+          stationIndex: l.stationIndex,
+          durationMs: l.completedAt ? l.completedAt.getTime() - l.startedAt.getTime() : null,
+        })),
+      };
+    }),
+
+  // Blessing for the guest of honor (written at the finish screen)
+  addBlessing: publicProcedure
+    .input(z.object({ teamId: z.number(), text: z.string().min(2).max(1000) }))
+    .mutation(async ({ input }) => {
+      const team = await getTeamById(input.teamId);
+      await addBlessing(input.teamId, team?.teamName ?? null, input.text.trim());
+      return { success: true };
+    }),
+
+  // All blessings (shown in the slideshow)
+  getBlessings: publicProcedure.query(async () => {
+    return getAllBlessings();
+  }),
 
   // Upload photo for a station task
   uploadPhoto: publicProcedure

@@ -99,6 +99,7 @@ export const adminRouter = router({
         taskAnswer: z.string().optional(),
         skipScratch: z.boolean().optional(),
         taskAudioUrl: z.string().optional(),
+        taskAudioUrls: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -131,6 +132,7 @@ export const adminRouter = router({
         taskAnswer: z.string().optional(),
         skipScratch: z.boolean().optional(),
         taskAudioUrl: z.string().optional(),
+        taskAudioUrls: z.string().optional(),
         hint1: z.string().optional(),
         hint2: z.string().optional(),
         hint3: z.string().optional(),
@@ -199,6 +201,68 @@ export const adminRouter = router({
       await requireAdmin(input.token);
       await deleteTeam(input.teamId);
       return { success: true };
+    }),
+
+  // Recent activity feed: registrations, submissions, reviews, station
+  // completions and finishes — merged and sorted, newest first.
+  getActivity: publicProcedure
+    .input(z.object({ token: z.string(), limit: z.number().min(1).max(100).default(30) }))
+    .query(async ({ input }) => {
+      await requireAdmin(input.token);
+      const { getAllTeams, getAllSubmissions, getAllLogs } = await import("../db");
+      const [teams, submissions, logs] = await Promise.all([
+        getAllTeams(),
+        getAllSubmissions(),
+        getAllLogs(),
+      ]);
+      const teamName = (id: number) => teams.find((t) => t.id === id)?.teamName ?? `#${id}`;
+      type Event = { at: Date; icon: string; text: string };
+      const events: Event[] = [];
+      for (const t of teams) {
+        events.push({ at: t.createdAt, icon: "👥", text: `קבוצת "${t.teamName}" נרשמה למירוץ` });
+        if (t.isFinished && t.finishedAt) {
+          events.push({ at: t.finishedAt, icon: "🏆", text: `קבוצת "${t.teamName}" סיימה את המירוץ!` });
+        }
+      }
+      for (const sub of submissions) {
+        events.push({
+          at: sub.submittedAt,
+          icon: sub.mediaType === "video" ? "🎬" : "📸",
+          text: `קבוצת "${teamName(sub.teamId)}" שלחה ${sub.mediaType === "video" ? "סרטון" : "תמונה"} בתחנה #${sub.stationId}`,
+        });
+        if (sub.reviewedAt) {
+          events.push({
+            at: sub.reviewedAt,
+            icon: sub.status === "approved" ? "✅" : "❌",
+            text: `ההפקה ${sub.status === "approved" ? "אישרה" : "דחתה"} הגשה של קבוצת "${teamName(sub.teamId)}" בתחנה #${sub.stationId}`,
+          });
+        }
+      }
+      for (const log of logs) {
+        events.push({
+          at: log.startedAt,
+          icon: "🚩",
+          text: `קבוצת "${teamName(log.teamId)}" נכנסה לתחנה ${log.stationIndex + 1}`,
+        });
+        if (log.completedAt) {
+          events.push({
+            at: log.completedAt,
+            icon: "🏁",
+            text: `קבוצת "${teamName(log.teamId)}" השלימה את תחנה ${log.stationIndex + 1}`,
+          });
+        }
+      }
+      events.sort((a, b) => b.at.getTime() - a.at.getTime());
+      return events.slice(0, input.limit);
+    }),
+
+  // All blessings written by the teams
+  getBlessings: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ input }) => {
+      await requireAdmin(input.token);
+      const { getAllBlessings } = await import("../db");
+      return getAllBlessings();
     }),
 
   // Upload an image (e.g. a puzzle image) to Blob storage, returns its URL
