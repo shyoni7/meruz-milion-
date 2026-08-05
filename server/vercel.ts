@@ -78,6 +78,33 @@ app.use(async (_req, _res, next) => {
 registerStorageProxy(app);
 registerOAuthRoutes(app);
 
+// Client-side Blob uploads (large files like videos bypass the ~4.5MB
+// serverless request limit by uploading straight to Blob storage).
+app.post("/api/blob/upload", async (req, res) => {
+  try {
+    const { handleUpload } = await import("@vercel/blob/client");
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: [
+          "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+          "video/mp4", "video/quicktime", "video/webm", "video/3gpp",
+        ],
+        maximumSizeInBytes: 200 * 1024 * 1024,
+        addRandomSuffix: true,
+      }),
+      onUploadCompleted: async () => {
+        // Submission rows are created by the client via game.recordSubmission
+      },
+    });
+    res.json(jsonResponse);
+  } catch (err) {
+    console.error("[blob-upload] failed:", err);
+    res.status(400).json({ error: (err as Error).message });
+  }
+});
+
 // Configuration health check — booleans only, no secrets exposed.
 app.get("/api/health", (_req, res) => {
   res.json({

@@ -164,6 +164,13 @@
     background-color: var(--navy);
   }
 
+  /* Screens that opt into scrolling — must beat .game-screen's overflow:hidden
+     regardless of layer order, hence the doubled specificity */
+  .game-screen.overflow-y-auto {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Glass card with gold border */
   .glass-card {
     background: var(--glass-bg);

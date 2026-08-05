@@ -4,8 +4,8 @@
  *
  * Shown after the team sends their photo. Polls the server for the review
  * status: approved → advance automatically, rejected → show the production
- * note and move to TryAgain. Additional photos can be added while waiting.
- * Manual buttons remain as a fallback (e.g. approval given over WhatsApp).
+ * note and move to TryAgain. Photos and videos can be added while waiting.
+ * Only a production approval advances the team — no manual skip.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -14,10 +14,11 @@ import { Camera, Lightbulb } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import HintCenter from "./HintCenter";
 import { trpc } from "@/lib/trpc";
+import { upload } from "@vercel/blob/client";
 import { toast } from "sonner";
 
 export default function ControlRoom() {
-  const { currentStation, approveMission, retryMission } = useGame();
+  const { currentStation, approveMission, retryMission, retryPhoto } = useGame();
   const [showHints, setShowHints] = useState(false);
   const [uploading, setUploading] = useState(false);
   const handledSubmissionId = useRef<number | null>(null);
@@ -62,10 +63,48 @@ export default function ControlRoom() {
     },
   });
 
+  const recordSubmissionMutation = trpc.game.recordSubmission.useMutation({
+    onSuccess: () => {
+      toast.success("הסרטון נשלח! 🎬");
+      setUploading(false);
+    },
+    onError: () => {
+      toast.error("שגיאה בשליחת הסרטון, נסו שוב");
+      setUploading(false);
+    },
+  });
+
   const handleExtraPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !teamId) return;
+
+    // Videos upload straight to Blob storage (no serverless size limit)
+    if (file.type.startsWith("video/")) {
+      if (file.size > 200 * 1024 * 1024) {
+        toast.error("הסרטון גדול מדי — עד 200MB");
+        return;
+      }
+      setUploading(true);
+      try {
+        const blob = await upload(
+          `submissions/team-${teamId}/video-${Date.now()}-${file.name}`,
+          file,
+          { access: "public", handleUploadUrl: "/api/blob/upload", contentType: file.type }
+        );
+        recordSubmissionMutation.mutate({
+          teamId,
+          stationId: stationDbId,
+          url: blob.url,
+          mediaType: "video",
+        });
+      } catch {
+        toast.error("שגיאה בהעלאת הסרטון, נסו שוב");
+        setUploading(false);
+      }
+      return;
+    }
+
     setUploading(true);
     try {
       const objectUrl = URL.createObjectURL(file);
@@ -163,9 +202,9 @@ export default function ControlRoom() {
                 התמונה נשלחה לצוות ההפקה 🕐
               </p>
               <p className="text-white/60 text-sm leading-relaxed">
-                ברגע שההפקה תאשר — תעברו אוטומטית לתחנה הבאה.
+                רק אישור של ההפקה מעביר לתחנה הבאה — זה יקרה אוטומטית ברגע שיאשרו.
                 <br />
-                בינתיים אפשר להוסיף תמונות נוספות.
+                בינתיים אפשר להוסיף תמונות וסרטונים.
               </p>
             </motion.div>
           </div>
@@ -181,8 +220,7 @@ export default function ControlRoom() {
             <input
               id="extra-photo-input"
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/*,video/*"
               className="hidden"
               onChange={handleExtraPhoto}
             />
@@ -192,23 +230,15 @@ export default function ControlRoom() {
               disabled={uploading}
             >
               <Camera size={16} />
-              {uploading ? "מעלה תמונה..." : "הוסיפו תמונה נוספת"}
+              {uploading ? "מעלה..." : "הוסיפו תמונה או סרטון"}
             </button>
 
-            {/* Manual fallback (approval over WhatsApp etc.) */}
+            {/* Back to the task screen (does not skip the approval gate) */}
             <button
               className="btn-outline-gold flex items-center justify-center gap-2"
-              onClick={approveMission}
+              onClick={retryPhoto}
             >
-              🟢 קיבלנו אישור — ממשיכים
-            </button>
-
-            <button
-              className="btn-outline-gold flex items-center justify-center gap-2"
-              style={{ color: "oklch(0.7 0.2 25)", borderColor: "oklch(0.7 0.2 25 / 0.3)" }}
-              onClick={retryMission}
-            >
-              🔴 התבקשנו לנסות שוב
+              חזרה למסך המשימה
             </button>
 
             <button

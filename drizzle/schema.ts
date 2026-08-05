@@ -102,6 +102,8 @@ export const submissions = pgTable("submissions", {
   imageKey: text("imageKey").notNull(),
   /** Optional message the team attached to the photo */
   caption: text("caption"),
+  /** Media kind: image (default) | video */
+  mediaType: varchar("mediaType", { length: 10 }).default("image").notNull(),
   status: submissionStatusEnum("status").default("pending").notNull(),
   adminNote: text("adminNote"),
   submittedAt: timestamp("submittedAt").defaultNow().notNull(),

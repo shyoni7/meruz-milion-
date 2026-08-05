@@ -14,6 +14,8 @@ export default function AdminSubmissions() {
   const utils = trpc.useUtils();
   const [notes, setNotes] = useState<Record<number, string>>({});
 
+  const isVideo = (sub: { mediaType?: string }) => sub.mediaType === "video";
+
   // Poll every 10s so new photos appear without a manual refresh
   const { data: submissions, isLoading } = trpc.admin.getSubmissions.useQuery(
     { token: token! },
@@ -74,13 +76,22 @@ export default function AdminSubmissions() {
                       <span>קבוצה #{sub.teamId}</span>
                       <span>תחנה #{sub.stationId}</span>
                     </div>
-                    <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
-                      <img
+                    {isVideo(sub) ? (
+                      <video
                         src={sub.imageUrl}
-                        alt="submission"
-                        className="w-full max-h-72 object-contain rounded-lg border border-white/10 bg-black/40"
+                        controls
+                        preload="metadata"
+                        className="w-full max-h-72 rounded-lg border border-white/10 bg-black/40"
                       />
-                    </a>
+                    ) : (
+                      <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
+                        <img
+                          src={sub.imageUrl}
+                          alt="submission"
+                          className="w-full max-h-72 object-contain rounded-lg border border-white/10 bg-black/40"
+                        />
+                      </a>
+                    )}
                     {(sub as { caption?: string | null }).caption && (
                       <p className="text-sm text-white/90 bg-white/5 rounded-lg px-3 py-2">
                         💬 {(sub as { caption?: string | null }).caption}
@@ -140,9 +151,13 @@ export default function AdminSubmissions() {
               {reviewed.map((sub) => (
                 <Card key={sub.id} className={`bg-[#0d1526] ${sub.status === "approved" ? "border-green-500/20" : "border-red-500/20"}`}>
                   <CardContent className="p-3 space-y-2">
-                    <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
-                      <img src={sub.imageUrl} alt="submission" className="w-full max-h-48 object-contain rounded bg-black/40" />
-                    </a>
+                    {isVideo(sub) ? (
+                      <video src={sub.imageUrl} controls preload="metadata" className="w-full max-h-48 rounded bg-black/40" />
+                    ) : (
+                      <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
+                        <img src={sub.imageUrl} alt="submission" className="w-full max-h-48 object-contain rounded bg-black/40" />
+                      </a>
+                    )}
                     {(sub as { caption?: string | null }).caption && (
                       <p className="text-xs text-white/80">💬 {(sub as { caption?: string | null }).caption}</p>
                     )}

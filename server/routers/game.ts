@@ -121,6 +121,31 @@ export const gameRouter = router({
       return { success: true, imageUrl: url };
     }),
 
+  // Record a submission whose file was uploaded client-side to Blob storage
+  // (used for videos / large files that bypass the serverless body limit)
+  recordSubmission: publicProcedure
+    .input(
+      z.object({
+        teamId: z.number(),
+        stationId: z.number(),
+        url: z.string().url().max(1000),
+        mediaType: z.enum(["image", "video"]).default("image"),
+        caption: z.string().max(500).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { createSubmission } = await import("../db");
+      await createSubmission({
+        teamId: input.teamId,
+        stationId: input.stationId,
+        imageUrl: input.url,
+        imageKey: input.url,
+        mediaType: input.mediaType,
+        caption: input.caption?.trim() || null,
+      });
+      return { success: true };
+    }),
+
   // Get submissions for a team
   getTeamSubmissions: publicProcedure
     .input(z.object({ teamId: z.number() }))

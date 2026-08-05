@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 
 interface Slide {
   imageUrl: string;
+  mediaType: string;
   stationTitle: string;
   teamName: string;
   stationIndex: number;
@@ -50,6 +51,7 @@ export default function SlideshowPage() {
     if (!data || !captionsReady) return;
     const built: Slide[] = data.submissions.map((sub, i) => ({
       imageUrl: sub.imageUrl,
+      mediaType: (sub as { mediaType?: string }).mediaType ?? "image",
       stationTitle: sub.station?.title ?? `תחנה ${sub.stationId}`,
       teamName: sub.team?.teamName ?? "",
       stationIndex: (sub.station?.orderIndex ?? 0) + 1,
@@ -170,11 +172,22 @@ export default function SlideshowPage() {
               className="absolute inset-0 flex flex-col"
             >
               <div className="flex-1 relative">
-                <img
-                  src={current.imageUrl}
-                  alt={current.stationTitle}
-                  className="w-full h-full object-cover"
-                />
+                {current.mediaType === "video" ? (
+                  <video
+                    src={current.imageUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <img
+                    src={current.imageUrl}
+                    alt={current.stationTitle}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1e] via-transparent to-transparent" />
                 {/* Station badge — top right */}
                 <div className="absolute top-4 right-4 bg-[#c9a84c]/90 text-[#0a0f1e] font-bold text-sm px-3 py-1 rounded-full">

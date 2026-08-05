@@ -1,0 +1,1 @@
+ALTER TABLE "submissions" ADD COLUMN "mediaType" varchar(10) DEFAULT 'image' NOT NULL;
