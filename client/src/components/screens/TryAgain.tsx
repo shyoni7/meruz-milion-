@@ -20,7 +20,7 @@ export default function TryAgain() {
 
   return (
     <>
-      <div className="game-screen" dir="rtl">
+      <div className="game-screen overflow-y-auto" dir="rtl">
         {/* Background */}
         <div className="absolute inset-0 bg-[oklch(0.13_0.03_250)]" />
         <div
@@ -31,7 +31,7 @@ export default function TryAgain() {
         />
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col h-full max-w-[480px] mx-auto w-full px-6">
+        <div className="relative z-10 flex flex-col min-h-full max-w-[480px] mx-auto w-full px-6">
           {/* Top bar */}
           <div className="flex items-center justify-between pt-12 pb-6">
             <div className="station-badge">{currentStation.number}</div>
@@ -41,7 +41,7 @@ export default function TryAgain() {
           <div className="gold-rule mb-8" />
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col justify-center gap-6">
+          <div className="flex flex-col gap-6 my-auto py-2">
             {/* Icon */}
             <motion.div
               className="flex justify-center"
@@ -97,7 +97,7 @@ export default function TryAgain() {
 
           {/* Action buttons */}
           <motion.div
-            className="flex flex-col gap-3 pb-10"
+            className="flex flex-col gap-3 pb-10 pt-6"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}

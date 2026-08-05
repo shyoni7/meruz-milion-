@@ -121,7 +121,7 @@ export default function ControlRoom() {
           <div className="gold-rule mb-8 shrink-0" />
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col justify-center gap-6">
+          <div className="flex flex-col gap-6 my-auto py-2">
             {/* Icon — pulsing while waiting */}
             <motion.div
               className="flex justify-center shrink-0"
@@ -172,7 +172,7 @@ export default function ControlRoom() {
 
           {/* Action buttons */}
           <motion.div
-            className="flex flex-col gap-3 pb-10 shrink-0"
+            className="flex flex-col gap-3 pb-10 pt-6 shrink-0"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
