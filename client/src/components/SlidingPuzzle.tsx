@@ -85,7 +85,7 @@ export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps
                 isEmpty
                   ? { background: "oklch(0.13 0.03 250)" }
                   : {
-                      backgroundImage: `url(${imageUrl})`,
+                      backgroundImage: `url("${imageUrl}")`,
                       backgroundSize: `${SIZE * 100}% ${SIZE * 100}%`,
                       backgroundPosition: `${(col / (SIZE - 1)) * 100}% ${(row / (SIZE - 1)) * 100}%`,
                     }
