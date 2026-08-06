@@ -15,9 +15,12 @@ export const slideshowRouter = router({
     ]);
 
     const db = await getDb();
-    const allSubmissions = db
+    // Completion markers (solved puzzle / correct answer) have no media —
+    // they exist only for production approval, so keep them out of the show
+    const allSubmissions = (db
       ? await db.select().from(submissions).orderBy(asc(submissions.stationId))
-      : [];
+      : []
+    ).filter((s) => s.mediaType !== "completion");
 
     // Build lookup maps
     const stationMap = new Map(allStations.map((s) => [s.id, s]));
@@ -54,13 +57,14 @@ export const slideshowRouter = router({
 
       // Fetch submissions sorted by stationId (orderIndex via join)
       const db = await getDb();
-      const allSubmissions = db
+      const allSubmissions = (db
         ? await db
             .select()
             .from(submissions)
             .where(eq(submissions.teamId, input.teamId))
             .orderBy(asc(submissions.stationId))
-        : [];
+        : []
+      ).filter((s) => s.mediaType !== "completion");
 
       // Build a map of stationId -> station for quick lookup
       const stationMap = new Map(allStations.map((s) => [s.id, s]));

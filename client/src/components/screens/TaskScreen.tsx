@@ -4,10 +4,13 @@
  *
  * Supports four mission types (set per station in the admin panel):
  * - photo:       take a photo → production approval (ControlRoom)
- * - puzzle:      3x3 sliding puzzle from an admin image → auto-advance
- * - coordinates: type the correct answer/code → auto-advance
+ * - puzzle:      3x3 sliding puzzle from an admin image
+ * - coordinates: type the correct answer/code (checked server-side)
  * - morse:       decode a morse message (QR hidden at the station) using
- *                the in-app legend, type the word → auto-advance
+ *                the in-app legend, type the word
+ *
+ * No mission auto-advances: every completion is sent to the production
+ * team, and only their approval (in ControlRoom) moves the team forward.
  */
 
 import { useState } from "react";
@@ -58,6 +61,29 @@ export default function TaskScreen() {
       setUploading(false);
     },
   });
+
+  // Solved puzzles / correct answers are reported to the production team and
+  // wait for explicit approval — nothing advances automatically.
+  const submitCompletionMutation = trpc.game.submitCompletion.useMutation({
+    onSuccess: () => {
+      toast.success("נשלח לאישור ההפקה 🕐");
+      goToControlRoom();
+    },
+    onError: () => toast.error("שגיאה בשליחה לאישור, נסו שוב"),
+  });
+
+  const reportCompletion = (kind: "puzzle" | "coordinates" | "morse") => {
+    if (!teamId || !currentStation.dbId) {
+      // Unregistered / demo fallback — no team for the production to approve
+      approveMission();
+      return;
+    }
+    submitCompletionMutation.mutate({
+      teamId,
+      stationId: currentStation.dbId,
+      kind,
+    });
+  };
 
   const checkAnswerMutation = trpc.game.checkAnswer.useMutation({
     onSuccess: (res) => {
@@ -145,14 +171,19 @@ export default function TaskScreen() {
   const gradient = STATION_GRADIENTS[currentStation.image] ||
     "linear-gradient(135deg, oklch(0.18 0.04 250), oklch(0.13 0.03 250))";
 
-  const answerInput = (placeholder: string) =>
+  const answerInput = (placeholder: string, kind: "coordinates" | "morse") =>
     answerCorrect ? (
       <div className="flex flex-col gap-3">
         <div className="glass-card p-4 text-center border-green-500/40">
           <p className="text-gold font-bold text-lg">🎉 תשובה נכונה!</p>
+          <p className="text-white/60 text-sm mt-1">רק אישור של ההפקה מעביר לתחנה הבאה</p>
         </div>
-        <button className="btn-gold flex items-center justify-center gap-2" onClick={approveMission}>
-          עברו למשימה הבאה ⬅
+        <button
+          className="btn-gold flex items-center justify-center gap-2"
+          onClick={() => reportCompletion(kind)}
+          disabled={submitCompletionMutation.isPending}
+        >
+          {submitCompletionMutation.isPending ? "שולח..." : "שלחו לאישור ההפקה 📡"}
         </button>
       </div>
     ) : (
@@ -260,7 +291,7 @@ export default function TaskScreen() {
                 currentStation.taskImageUrl ? (
                   <SlidingPuzzle
                     imageUrl={currentStation.taskImageUrl}
-                    onSolved={approveMission}
+                    onSolved={() => reportCompletion("puzzle")}
                   />
                 ) : (
                   <div className="glass-card p-4 text-center text-white/60 text-sm">
@@ -269,7 +300,7 @@ export default function TaskScreen() {
                 )
               )}
 
-              {taskType === "coordinates" && answerInput("הקלידו את התשובה / הקוד")}
+              {taskType === "coordinates" && answerInput("הקלידו את התשובה / הקוד", "coordinates")}
 
               {taskType === "morse" && (
                 <>
@@ -292,7 +323,7 @@ export default function TaskScreen() {
                       </div>
                     </div>
                   )}
-                  {answerInput("הקלידו את המילה שפוענחה")}
+                  {answerInput("הקלידו את המילה שפוענחה", "morse")}
                 </>
               )}
 

@@ -89,7 +89,7 @@ export default function TryAgain() {
                 <p className="text-white/60 text-sm leading-relaxed">
                   בדקו שוב את ההוראות.
                   <br />
-                  צלמו תמונה חדשה ושלחו אותה שוב.
+                  השלימו את המשימה ושלחו שוב לאישור.
                 </p>
               )}
             </motion.div>
@@ -107,7 +107,7 @@ export default function TryAgain() {
               onClick={retryPhoto}
             >
               <Camera size={16} />
-              שלח תמונה חדשה
+              חזרה למסך המשימה
             </button>
 
             <button

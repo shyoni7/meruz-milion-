@@ -188,6 +188,35 @@ export const gameRouter = router({
       return { success: true, imageUrl: url };
     }),
 
+  // Record that a team completed a self-checked mission (puzzle / typed
+  // answer). Creates a pending "completion" submission so the production
+  // team explicitly approves the advance — no mission auto-advances.
+  submitCompletion: publicProcedure
+    .input(
+      z.object({
+        teamId: z.number(),
+        stationId: z.number(),
+        kind: z.enum(["puzzle", "coordinates", "morse"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { createSubmission } = await import("../db");
+      const captions: Record<typeof input.kind, string> = {
+        puzzle: "🧩 הפאזל הורכב בהצלחה",
+        coordinates: "🔑 הוקלד הקוד הנכון",
+        morse: "📡 קוד המורס פוענח נכון",
+      };
+      await createSubmission({
+        teamId: input.teamId,
+        stationId: input.stationId,
+        imageUrl: "",
+        imageKey: "",
+        mediaType: "completion",
+        caption: captions[input.kind],
+      });
+      return { success: true };
+    }),
+
   // Record a submission whose file was uploaded client-side to Blob storage
   // (used for videos / large files that bypass the serverless body limit)
   recordSubmission: publicProcedure
