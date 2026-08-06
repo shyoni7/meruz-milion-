@@ -4,8 +4,9 @@
  * is revealed, then onRevealed() is called.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { createTearSound } from "@/lib/tearSound";
 
 interface EnvelopeRevealProps {
   stationNumber: number;
@@ -20,13 +21,27 @@ export default function EnvelopeReveal({ stationNumber, onRevealed }: EnvelopeRe
   const startX = useRef(0);
   const tapeRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef(false);
+  const soundRef = useRef<ReturnType<typeof createTearSound> | null>(null);
+
+  const getSound = () => {
+    if (!soundRef.current) soundRef.current = createTearSound();
+    return soundRef.current;
+  };
+
+  // Silence the tear loop if the component unmounts mid-drag
+  useEffect(() => () => soundRef.current?.stop(), []);
 
   const finishTear = () => {
     if (doneRef.current) return;
     doneRef.current = true;
     setTorn(true);
+    const sound = getSound();
+    sound.stop();
     // Open the flap shortly after the tape flies off, then reveal
-    setTimeout(() => setOpened(true), 350);
+    setTimeout(() => {
+      setOpened(true);
+      sound.thud();
+    }, 350);
     setTimeout(onRevealed, 1400);
   };
 
@@ -35,6 +50,9 @@ export default function EnvelopeReveal({ stationNumber, onRevealed }: EnvelopeRe
     dragging.current = true;
     startX.current = e.clientX;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    const sound = getSound();
+    sound.start();
+    sound.setIntensity(0.15);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -42,6 +60,7 @@ export default function EnvelopeReveal({ stationNumber, onRevealed }: EnvelopeRe
     const width = tapeRef.current?.offsetWidth ?? 280;
     const p = Math.min(1, Math.abs(e.clientX - startX.current) / (width * 0.75));
     setProgress(p);
+    getSound().setIntensity(0.15 + p * 0.85);
     if (p >= 1) {
       dragging.current = false;
       finishTear();
@@ -50,7 +69,10 @@ export default function EnvelopeReveal({ stationNumber, onRevealed }: EnvelopeRe
 
   const onPointerUp = () => {
     dragging.current = false;
-    if (!torn && progress < 1) setProgress(0); // snap back if not torn
+    if (!torn && progress < 1) {
+      setProgress(0); // snap back if not torn
+      soundRef.current?.stop();
+    }
   };
 
   return (
