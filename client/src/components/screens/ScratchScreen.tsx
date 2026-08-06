@@ -51,7 +51,7 @@ export default function ScratchScreen() {
             {currentStation.name}
           </h2>
           <p className="text-white/50 text-sm">
-            תלשו את הסרט הדביק ופתחו את המעטפה כדי לגלות את הרמז
+            תלשו את פס הזהב ומשכו את הכרטיס מהמעטפה כדי לגלות את הרמז
           </p>
         </motion.div>
 
