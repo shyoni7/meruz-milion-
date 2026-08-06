@@ -227,8 +227,11 @@ export const adminRouter = router({
       for (const sub of submissions) {
         events.push({
           at: sub.submittedAt,
-          icon: sub.mediaType === "video" ? "🎬" : "📸",
-          text: `קבוצת "${teamName(sub.teamId)}" שלחה ${sub.mediaType === "video" ? "סרטון" : "תמונה"} בתחנה #${sub.stationId}`,
+          icon: sub.mediaType === "video" ? "🎬" : sub.mediaType === "completion" ? "🧩" : "📸",
+          text:
+            sub.mediaType === "completion"
+              ? `קבוצת "${teamName(sub.teamId)}" השלימה משימה בתחנה #${sub.stationId} וממתינה לאישור`
+              : `קבוצת "${teamName(sub.teamId)}" שלחה ${sub.mediaType === "video" ? "סרטון" : "תמונה"} בתחנה #${sub.stationId}`,
         });
         if (sub.reviewedAt) {
           events.push({

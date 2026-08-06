@@ -101,7 +101,7 @@ export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps
             🎉 הפאזל הושלם!
           </p>
           <button className="btn-gold w-full" onClick={() => onSolvedRef.current()}>
-            עברו למשימה הבאה ⬅
+            שלחו לאישור ההפקה 📡
           </button>
         </div>
       )}

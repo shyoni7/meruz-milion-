@@ -199,7 +199,7 @@ export default function ControlRoom() {
               transition={{ duration: 0.4, delay: 0.3 }}
             >
               <p className="text-white/90 text-base leading-relaxed mb-2">
-                התמונה נשלחה לצוות ההפקה 🕐
+                המשימה נשלחה לצוות ההפקה 🕐
               </p>
               <p className="text-white/60 text-sm leading-relaxed">
                 רק אישור של ההפקה מעביר לתחנה הבאה — זה יקרה אוטומטית ברגע שיאשרו.

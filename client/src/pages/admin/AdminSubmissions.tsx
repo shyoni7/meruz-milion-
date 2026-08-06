@@ -15,6 +15,8 @@ export default function AdminSubmissions() {
   const [notes, setNotes] = useState<Record<number, string>>({});
 
   const isVideo = (sub: { mediaType?: string }) => sub.mediaType === "video";
+  // Solved puzzle / correct answer waiting for the advance approval — no media
+  const isCompletion = (sub: { mediaType?: string }) => sub.mediaType === "completion";
 
   // Poll every 10s so new photos appear without a manual refresh
   const { data: submissions, isLoading } = trpc.admin.getSubmissions.useQuery(
@@ -76,7 +78,12 @@ export default function AdminSubmissions() {
                       <span>קבוצה #{sub.teamId}</span>
                       <span>תחנה #{sub.stationId}</span>
                     </div>
-                    {isVideo(sub) ? (
+                    {isCompletion(sub) ? (
+                      <div className="w-full rounded-lg border border-[#c9a84c]/30 bg-[#c9a84c]/10 py-8 text-center">
+                        <p className="text-2xl mb-1">🧩</p>
+                        <p className="text-[#c9a84c] font-bold">המשימה הושלמה — ממתינה לאישור מעבר</p>
+                      </div>
+                    ) : isVideo(sub) ? (
                       <video
                         src={sub.imageUrl}
                         controls
@@ -151,7 +158,12 @@ export default function AdminSubmissions() {
               {reviewed.map((sub) => (
                 <Card key={sub.id} className={`bg-[#0d1526] ${sub.status === "approved" ? "border-green-500/20" : "border-red-500/20"}`}>
                   <CardContent className="p-3 space-y-2">
-                    {isVideo(sub) ? (
+                    {isCompletion(sub) ? (
+                      <div className="w-full rounded border border-[#c9a84c]/20 bg-[#c9a84c]/10 py-5 text-center">
+                        <p className="text-xl">🧩</p>
+                        <p className="text-[#c9a84c] text-xs font-bold">השלמת משימה</p>
+                      </div>
+                    ) : isVideo(sub) ? (
                       <video src={sub.imageUrl} controls preload="metadata" className="w-full max-h-48 rounded bg-black/40" />
                     ) : (
                       <a href={sub.imageUrl} target="_blank" rel="noopener noreferrer" title="פתח בגודל מלא">
