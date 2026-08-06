@@ -145,14 +145,14 @@ export default function EnvelopeReveal({
     if (!pullState.current || phase !== "ready") return;
     pullState.current = null;
     if (pull.get() > 0.45) completePull();
-    else animate(pull, 0.16, { type: "spring", stiffness: 70, damping: 18 }); // rest at a peek
+    else animate(pull, 0.3, { type: "spring", stiffness: 70, damping: 18 }); // rest at a peek
   };
 
   useMotionValueEvent(pull, "change", (v) => {
     if (v > 0.82) setContentVisible(true);
   });
   useEffect(() => {
-    if (phase === "ready") animate(pull, 0.16, { type: "spring", stiffness: 60, damping: 20 });
+    if (phase === "ready") animate(pull, 0.3, { type: "spring", stiffness: 60, damping: 20 });
   }, [phase, pull]);
 
   /* ---- derived transforms ---- */
@@ -165,7 +165,7 @@ export default function EnvelopeReveal({
   const stripPieceSkew = useTransform(tear, [0, 0.5, 1], [0, 6, 2]);
   const hintTextOpacity = useTransform(tear, [0, 0.25], [1, 0]);
 
-  const cardY = useTransform(pull, [0, 1], [20, -290]);
+  const cardY = useTransform(pull, [0, 1], [10, -290]);
   const cardScale = useTransform(pull, [0, 1], [0.94, 1]);
   const glowOpacity = useTransform(pull, [0, 0.4, 1], [0, 0.5, 0.9]);
   const hintOpacity = useTransform(pull, [0, 0.35], [1, 0]);
@@ -205,7 +205,7 @@ export default function EnvelopeReveal({
           onPointerUp={onCardUp}
           onPointerCancel={onCardUp}
           className={cn(
-            "absolute inset-x-6 top-[300px] z-10 h-[250px] select-none rounded-2xl bg-[#0d1526] border border-[#c9a84c]/40 shadow-[0_10px_40px_rgba(0,0,0,0.45)] flex items-center justify-center",
+            "absolute inset-x-6 top-[300px] z-10 h-[190px] select-none rounded-2xl bg-[#0d1526] border border-[#c9a84c]/40 shadow-[0_10px_40px_rgba(0,0,0,0.45)] flex items-center justify-center",
             phase === "ready" ? "cursor-grab touch-none" : "",
           )}
         >
@@ -315,11 +315,22 @@ export default function EnvelopeReveal({
           </div>
         </motion.div>
 
+        {/* grab-anywhere surface for the card pull (the peeking card alone is too small a target) */}
+        {phase === "ready" ? (
+          <div
+            className="absolute inset-0 z-40 touch-none cursor-grab active:cursor-grabbing"
+            onPointerDown={onCardDown}
+            onPointerMove={onCardMove}
+            onPointerUp={onCardUp}
+            onPointerCancel={onCardUp}
+          />
+        ) : null}
+
         {/* floating pull hint */}
         {phase === "ready" ? (
           <motion.div
             style={{ opacity: hintOpacity }}
-            className="pointer-events-none absolute inset-x-0 bottom-3 z-30 text-center text-xs font-bold tracking-[0.2em] text-primary/75"
+            className="pointer-events-none absolute inset-x-0 bottom-3 z-[45] text-center text-xs font-bold tracking-[0.2em] text-[#5a4a1e]/80"
           >
             <motion.span
               animate={{ y: [0, -6, 0] }}
