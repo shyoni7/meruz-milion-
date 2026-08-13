@@ -48,9 +48,10 @@ export const adminRouter = router({
       if (!admin) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
       const valid = await bcrypt.compare(input.password, admin.passwordHash);
       if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+      // No expiration — whoever logs in stays logged in until they log out
+      // themselves. The game must keep running without time-based kicks.
       const token = await new SignJWT({ adminId: admin.id, username: admin.username })
         .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime("24h")
         .sign(ADMIN_JWT_SECRET);
       return { token, displayName: admin.displayName ?? admin.username };
     }),
@@ -200,6 +201,18 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       await requireAdmin(input.token);
       await deleteTeam(input.teamId);
+      return { success: true };
+    }),
+
+  // End of game: log out every team device. Bumps the global logout epoch;
+  // each device notices the change on its next progress poll (~5s) and signs
+  // itself out back to the registration screen. No team data is deleted.
+  logoutAllTeams: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .mutation(async ({ input }) => {
+      await requireAdmin(input.token);
+      const { setGlobalSetting } = await import("../db");
+      await setGlobalSetting("teams_logout_epoch", `${Date.now()}`);
       return { success: true };
     }),
 

@@ -36,3 +36,12 @@ export function markMissionSolved(teamId: number, stationKey: string | number): 
     // Private mode / quota errors — the game still works, just without memory
   }
 }
+
+/** Wipe all remembered solves (used when the device signs out of the game) */
+export function clearAllSolvedMissions(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}

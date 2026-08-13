@@ -23,6 +23,7 @@ import ScratchScreen from "@/components/screens/ScratchScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
 import { trpc } from "@/lib/trpc";
 import MissionTimer from "@/components/MissionTimer";
+import { clearAllSolvedMissions } from "@/lib/solvedMissions";
 import { toast } from "sonner";
 
 // Screen transition variants — cinematic forward slide
@@ -98,14 +99,50 @@ export default function GamePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamData, currentStationIndex, isFinished]);
 
+  // Sign this device out of the game: forget the team and every locally
+  // remembered state, and return to the registration screen. Used when the
+  // team logs out themselves or when the admin logs everyone out at game end.
+  const signOutDevice = () => {
+    localStorage.removeItem("hamerutz_team_id");
+    localStorage.removeItem("hamerutz_team_name");
+    localStorage.removeItem("hamerutz_login_at");
+    localStorage.removeItem("hamerutz_last_note");
+    clearAllSolvedMissions();
+    restoredRef.current = false;
+    setTeamId(null);
+    setTeamName("");
+    setGameStarted(false);
+    setMissionStartedAt(null);
+    dispatch({ type: "RESET_GAME" });
+  };
+
+  // Admin "log everyone out" (end of game): the server's logout epoch is the
+  // time of the admin's click. A device signs out only when that click came
+  // AFTER its own registration. Never time-based — a device stays logged in
+  // for as long as the game runs.
+  useEffect(() => {
+    const epoch = Number(teamData?.logoutEpoch);
+    if (!epoch) return;
+    const storedLoginAt = Number(localStorage.getItem("hamerutz_login_at"));
+    if (!storedLoginAt) {
+      // Device registered before this feature existed — adopt "now" so a
+      // future logout-all still catches it.
+      localStorage.setItem("hamerutz_login_at", `${Date.now()}`);
+      return;
+    }
+    if (epoch > storedLoginAt) {
+      toast.info("ההפקה סיימה את המשחק — תודה שהשתתפתם! 🏁");
+      signOutDevice();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamData?.logoutEpoch]);
+
   // If the team was deleted by the admin, forget it and re-register
   useEffect(() => {
     if (teamError?.data?.code === "NOT_FOUND") {
-      localStorage.removeItem("hamerutz_team_id");
-      localStorage.removeItem("hamerutz_team_name");
-      setTeamId(null);
-      setTeamName("");
+      signOutDevice();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamError]);
 
   // Unique key for AnimatePresence — changes on screen or station change
@@ -130,6 +167,7 @@ export default function GamePage() {
     setTeamName(name);
     localStorage.setItem("hamerutz_team_id", id.toString());
     localStorage.setItem("hamerutz_team_name", name);
+    localStorage.setItem("hamerutz_login_at", `${Date.now()}`);
     setShowRegister(false);
     setGameStarted(true);
   };
@@ -168,13 +206,17 @@ export default function GamePage() {
           transition={screenTransition}
           style={{ position: "fixed", inset: 0 }}
         >
-          <SplashScreen onStart={() => {
-            if (!teamId) {
-              setShowRegister(true);
-            } else {
-              setGameStarted(true);
-            }
-          }} />
+          <SplashScreen
+            onStart={() => {
+              if (!teamId) {
+                setShowRegister(true);
+              } else {
+                setGameStarted(true);
+              }
+            }}
+            teamName={teamId ? teamName : null}
+            onLogout={teamId ? signOutDevice : undefined}
+          />
         </motion.div>
       </AnimatePresence>
     );
