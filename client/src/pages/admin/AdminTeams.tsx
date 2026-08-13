@@ -3,7 +3,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight, Film, Trash2 } from "lucide-react";
+import { ArrowRight, FastForward, Film, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminTeams() {
@@ -25,6 +25,28 @@ export default function AdminTeams() {
   const handleDelete = (id: number, name: string) => {
     if (!window.confirm(`למחוק את הקבוצה "${name}" וכל התמונות שלה לצמיתות?`)) return;
     deleteMutation.mutate({ token: token!, teamId: id });
+  };
+
+  const skipMutation = trpc.admin.skipTeamStation.useMutation({
+    onSuccess: (res) => {
+      utils.admin.getTeams.invalidate();
+      toast.success(
+        res.finished
+          ? "הקבוצה הוקפצה מעבר לתחנה האחרונה — המירוץ הסתיים לה 🏆"
+          : `הקבוצה הוקפצה לתחנה ${res.nextIndex + 1} ⏭️`
+      );
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSkip = (id: number, name: string, stationNumber: number) => {
+    if (
+      !window.confirm(
+        `להקפיץ את קבוצת "${name}" מעל המשימה בתחנה ${stationNumber}? הקבוצה תעבור מיד לתחנה הבאה בלי לסיים את המשימה.`
+      )
+    )
+      return;
+    skipMutation.mutate({ token: token!, teamId: id });
   };
 
   return (
@@ -54,6 +76,18 @@ export default function AdminTeams() {
                     <Badge className="bg-green-600 text-white">סיים 🏆</Badge>
                   ) : (
                     <Badge variant="outline" className="border-[#c9a84c]/40 text-[#c9a84c]">בתהליך</Badge>
+                  )}
+                  {!team.isFinished && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSkip(team.id, team.teamName, team.currentStationIndex + 1)}
+                      disabled={skipMutation.isPending}
+                      className="text-[#c9a84c]/70 hover:text-[#c9a84c] hover:bg-[#c9a84c]/10 h-8 w-8 p-0"
+                      title="הקפיצו את הקבוצה לתחנה הבאה (דילוג על המשימה)"
+                    >
+                      <FastForward className="w-4 h-4" />
+                    </Button>
                   )}
                   <Button
                     size="sm"
