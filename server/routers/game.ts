@@ -77,13 +77,17 @@ export const gameRouter = router({
       return { correct: normalize(input.answer) === expected };
     }),
 
-  // Get team progress
+  // Get team progress. Also returns the global logout epoch — when the admin
+  // ends the game and logs everyone out, the epoch changes and every polling
+  // device signs itself out. Nothing here is time-based.
   getTeam: publicProcedure
     .input(z.object({ teamId: z.number() }))
     .query(async ({ input }) => {
       const team = await getTeamById(input.teamId);
       if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
-      return team;
+      const { getGlobalSetting } = await import("../db");
+      const logoutEpoch = await getGlobalSetting("teams_logout_epoch");
+      return { ...team, logoutEpoch };
     }),
 
   // Advance team to next station

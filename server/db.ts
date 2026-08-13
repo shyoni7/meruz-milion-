@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 import {
   adminUsers,
@@ -30,6 +30,52 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+// ─── Global game settings (key/value) ──────────────────────────────────────
+// Tiny KV store for game-wide flags (e.g. the "log out all teams" epoch).
+// The table is created on first use so no manual migration is needed.
+
+let _settingsTableReady = false;
+
+async function ensureSettingsTable(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+  if (_settingsTableReady) return;
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS game_settings (
+      "key" varchar(64) PRIMARY KEY,
+      "value" text NOT NULL,
+      "updatedAt" timestamp DEFAULT now() NOT NULL
+    )
+  `);
+  _settingsTableReady = true;
+}
+
+export async function getGlobalSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    await ensureSettingsTable(db);
+    const result = await db.execute(sql`
+      SELECT "value" FROM game_settings WHERE "key" = ${key} LIMIT 1
+    `);
+    const rows = (result as { rows?: Array<{ value?: unknown }> }).rows ?? [];
+    const value = rows[0]?.value;
+    return typeof value === "string" ? value : null;
+  } catch (error) {
+    console.warn("[Database] Failed to read global setting:", error);
+    return null;
+  }
+}
+
+export async function setGlobalSetting(key: string, value: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await ensureSettingsTable(db);
+  await db.execute(sql`
+    INSERT INTO game_settings ("key", "value", "updatedAt")
+    VALUES (${key}, ${value}, now())
+    ON CONFLICT ("key") DO UPDATE SET "value" = ${value}, "updatedAt" = now()
+  `);
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {

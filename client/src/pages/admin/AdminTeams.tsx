@@ -3,7 +3,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight, FastForward, Film, Trash2 } from "lucide-react";
+import { ArrowRight, FastForward, Film, Power, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminTeams() {
@@ -39,6 +39,23 @@ export default function AdminTeams() {
     onError: (e) => toast.error(e.message),
   });
 
+  const logoutAllMutation = trpc.admin.logoutAllTeams.useMutation({
+    onSuccess: () => {
+      toast.success("כל הקבוצות ינותקו תוך מספר שניות ויחזרו למסך ההרשמה 🔌");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleLogoutAll = () => {
+    if (
+      !window.confirm(
+        "לנתק את כל הקבוצות מהמשחק? כל טלפון יחזור למסך ההרשמה. הנתונים (תמונות, זמנים, ברכות) נשמרים. פעולה זו מיועדת לסיום המשחק."
+      )
+    )
+      return;
+    logoutAllMutation.mutate({ token: token! });
+  };
+
   const handleSkip = (id: number, name: string, stationNumber: number) => {
     if (
       !window.confirm(
@@ -59,7 +76,22 @@ export default function AdminTeams() {
             </button>
           </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-6">קבוצות רשומות ({teams?.length ?? 0})</h1>
+        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+          <h1 className="text-2xl font-bold">קבוצות רשומות ({teams?.length ?? 0})</h1>
+          {(teams?.length ?? 0) > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleLogoutAll}
+              disabled={logoutAllMutation.isPending}
+              className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/40"
+              title="מנתק את כל הטלפונים בסיום המשחק — הנתונים נשמרים"
+            >
+              <Power className="w-4 h-4 ml-1" />
+              {logoutAllMutation.isPending ? "מנתק..." : "נתק את כל הקבוצות (סיום משחק)"}
+            </Button>
+          )}
+        </div>
         {isLoading ? (
           <p className="text-gray-400">טוען...</p>
         ) : (

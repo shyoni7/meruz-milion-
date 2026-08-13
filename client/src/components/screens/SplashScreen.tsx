@@ -16,6 +16,9 @@ const BG_HERO = "https://d2xsxph8kpxj0f.cloudfront.net/310519663445418346/fThv24
 
 interface SplashScreenProps {
   onStart: () => void;
+  /** Registered team name — shows a small self-logout link when present */
+  teamName?: string | null;
+  onLogout?: () => void;
 }
 
 const fadeUp = (delay: number) => ({
@@ -24,8 +27,14 @@ const fadeUp = (delay: number) => ({
   transition: { duration: 0.5, delay, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] },
 });
 
-export default function SplashScreen({ onStart }: SplashScreenProps) {
+export default function SplashScreen({ onStart, teamName, onLogout }: SplashScreenProps) {
   const [logoFailed, setLogoFailed] = useState(false);
+
+  const handleLogout = () => {
+    if (!onLogout) return;
+    if (!window.confirm(`להתנתק מקבוצת "${teamName}"? תצטרכו להירשם מחדש כדי לשחק.`)) return;
+    onLogout();
+  };
 
   return (
     <div className="game-screen overflow-y-auto" dir="rtl">
@@ -150,6 +159,14 @@ export default function SplashScreen({ onStart }: SplashScreenProps) {
               >
                 <ChevronsDown className="w-7 h-7 text-gold" />
               </motion.div>
+              {teamName && onLogout && (
+                <button
+                  className="text-white/40 text-xs underline underline-offset-2 mt-1"
+                  onClick={handleLogout}
+                >
+                  רשומים כקבוצת "{teamName}" — התנתקות
+                </button>
+              )}
             </motion.div>
             </div>
           </div>
