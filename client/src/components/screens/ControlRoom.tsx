@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { Camera, Lightbulb } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import HintCenter from "./HintCenter";
+import { reviewOutcome } from "@/lib/reviewOutcome";
 import { trpc } from "@/lib/trpc";
 import { upload } from "@vercel/blob/client";
 import { toast } from "sonner";
@@ -34,17 +35,19 @@ export default function ControlRoom() {
 
   useEffect(() => {
     if (!submissions) return;
-    const forStation = submissions.filter((s) => s.stationId === stationDbId);
-    const latest = forStation[forStation.length - 1];
-    if (!latest || latest.id === handledSubmissionId.current) return;
-    if (latest.status === "approved") {
-      handledSubmissionId.current = latest.id;
+    // Any approved submission for this station advances the team — never
+    // only the latest one, so extra photos or a re-sent completion can't
+    // bury an approval the production already gave.
+    const outcome = reviewOutcome(submissions, stationDbId);
+    if (outcome.kind === "waiting" || outcome.submissionId === handledSubmissionId.current)
+      return;
+    handledSubmissionId.current = outcome.submissionId;
+    if (outcome.kind === "approved") {
       toast.success("ההפקה אישרה את המשימה! 🎉");
       approveMission();
-    } else if (latest.status === "rejected") {
-      handledSubmissionId.current = latest.id;
-      if (latest.adminNote) {
-        localStorage.setItem("hamerutz_last_note", latest.adminNote);
+    } else {
+      if (outcome.adminNote) {
+        localStorage.setItem("hamerutz_last_note", outcome.adminNote);
       } else {
         localStorage.removeItem("hamerutz_last_note");
       }

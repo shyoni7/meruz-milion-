@@ -201,6 +201,17 @@ export const gameRouter = router({
     )
     .mutation(async ({ input }) => {
       const { createSubmission } = await import("../db");
+      // Idempotent: the puzzle stays solved on the device, so a team can
+      // easily re-send. If a completion for this station is already waiting
+      // (or was already approved), don't stack another card in the admin
+      // queue — a newer pending submission must never bury an approval.
+      const existing = (await getSubmissionsByTeam(input.teamId)).filter(
+        (s) =>
+          s.stationId === input.stationId &&
+          s.mediaType === "completion" &&
+          (s.status === "pending" || s.status === "approved")
+      );
+      if (existing.length > 0) return { success: true };
       const captions: Record<typeof input.kind, string> = {
         puzzle: "🧩 הפאזל הורכב בהצלחה",
         coordinates: "🔑 הוקלד הקוד הנכון",
