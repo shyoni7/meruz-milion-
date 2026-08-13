@@ -23,6 +23,7 @@ import ScratchScreen from "@/components/screens/ScratchScreen";
 import RegisterScreen from "@/components/screens/RegisterScreen";
 import { trpc } from "@/lib/trpc";
 import MissionTimer from "@/components/MissionTimer";
+import { toast } from "sonner";
 
 // Screen transition variants — cinematic forward slide
 const screenVariants = {
@@ -63,25 +64,39 @@ export default function GamePage() {
   }, [teamId, gameStarted, currentStationIndex, isFinished]);
 
   // Restore progress from the server after a refresh/crash — the DB is the
-  // source of truth for which station the team is on.
+  // source of truth for which station the team is on. Keeps polling so an
+  // admin skip (הקפצה) moves the team forward within a few seconds.
   const restoredRef = useRef(false);
   const { data: teamData, error: teamError } = trpc.game.getTeam.useQuery(
     { teamId: teamId ?? 0 },
-    { enabled: !!teamId, retry: false }
+    { enabled: !!teamId, retry: false, refetchInterval: 5000 }
   );
 
   useEffect(() => {
-    if (!teamData || restoredRef.current) return;
-    restoredRef.current = true;
-    if (teamData.isFinished || teamData.currentStationIndex > 0) {
-      dispatch({
-        type: "RESTORE_PROGRESS",
-        index: teamData.currentStationIndex,
-        finished: teamData.isFinished,
-      });
-      setGameStarted(true);
+    if (!teamData) return;
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      if (teamData.isFinished || teamData.currentStationIndex > 0) {
+        dispatch({
+          type: "RESTORE_PROGRESS",
+          index: teamData.currentStationIndex,
+          finished: teamData.isFinished,
+        });
+        setGameStarted(true);
+      }
+      return;
     }
-  }, [teamData]);
+    // Admin moved the team ahead of where the device thinks it is — jump
+    // forward (never backwards, so a lagging poll can't undo local progress)
+    if (teamData.isFinished && !isFinished) {
+      toast.success("ההפקה קידמה אתכם — סיימתם את המירוץ! 🏆");
+      dispatch({ type: "RESTORE_PROGRESS", index: teamData.currentStationIndex, finished: true });
+    } else if (!teamData.isFinished && teamData.currentStationIndex > currentStationIndex) {
+      toast.success("ההפקה קידמה אתכם לתחנה הבאה! ⏭️");
+      dispatch({ type: "RESTORE_PROGRESS", index: teamData.currentStationIndex, finished: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamData, currentStationIndex, isFinished]);
 
   // If the team was deleted by the admin, forget it and re-register
   useEffect(() => {

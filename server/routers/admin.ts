@@ -203,6 +203,36 @@ export const adminRouter = router({
       return { success: true };
     }),
 
+  // Skip a team past the mission it's stuck on — advances it to the next
+  // station (or finishes the race when it was on the last one). The team's
+  // device polls its progress and jumps forward automatically.
+  skipTeamStation: publicProcedure
+    .input(z.object({ token: z.string(), teamId: z.number() }))
+    .mutation(async ({ input }) => {
+      await requireAdmin(input.token);
+      const {
+        getTeamById,
+        getActiveStations,
+        updateTeamProgress,
+        markTeamFinished,
+        completeStationLog,
+        completeOpenLogs,
+      } = await import("../db");
+      const team = await getTeamById(input.teamId);
+      if (!team) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+      if (team.isFinished) return { finished: true, nextIndex: team.currentStationIndex };
+      const stations = await getActiveStations();
+      const nextIndex = team.currentStationIndex + 1;
+      if (nextIndex >= stations.length) {
+        await markTeamFinished(input.teamId);
+        await completeOpenLogs(input.teamId).catch(() => {});
+        return { finished: true, nextIndex: team.currentStationIndex };
+      }
+      await updateTeamProgress(input.teamId, nextIndex);
+      await completeStationLog(input.teamId, team.currentStationIndex).catch(() => {});
+      return { finished: false, nextIndex };
+    }),
+
   // Recent activity feed: registrations, submissions, reviews, station
   // completions and finishes — merged and sorted, newest first.
   getActivity: publicProcedure
