@@ -20,6 +20,7 @@ import { useGame } from "@/contexts/GameContext";
 import HintCenter from "./HintCenter";
 import SlidingPuzzle from "@/components/SlidingPuzzle";
 import { HEBREW_LEGEND } from "@/lib/morse";
+import { isMissionSolved, markMissionSolved } from "@/lib/solvedMissions";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -33,20 +34,27 @@ const STATION_GRADIENTS: Record<string, string> = {
 
 export default function TaskScreen() {
   const { currentStation, goToControlRoom, approveMission } = useGame();
+
+  // Get teamId from localStorage
+  const teamId = parseInt(localStorage.getItem("hamerutz_team_id") ?? "0", 10);
+
+  // A mission solved once stays solved on this device — coming back to the
+  // station (rejection, refresh, moving back in the game) never re-shuffles
+  // the puzzle or clears a correct answer.
+  const stationKey = currentStation.dbId ?? currentStation.id;
+  const [alreadySolved] = useState(() => isMissionSolved(teamId, stationKey));
+
   const [showHints, setShowHints] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
-  const [answerCorrect, setAnswerCorrect] = useState(false);
+  const [answerCorrect, setAnswerCorrect] = useState(alreadySolved);
   const [showLegend, setShowLegend] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<{ base64: string; dataUrl: string } | null>(null);
   const [caption, setCaption] = useState("");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const taskType = currentStation.taskType ?? "photo";
-
-  // Get teamId from localStorage
-  const teamId = parseInt(localStorage.getItem("hamerutz_team_id") ?? "0", 10);
 
   const uploadMutation = trpc.game.uploadPhoto.useMutation({
     onSuccess: () => {
@@ -90,6 +98,7 @@ export default function TaskScreen() {
       if (res.correct) {
         toast.success("תשובה נכונה! 🎉");
         setAnswerCorrect(true);
+        markMissionSolved(teamId, stationKey);
       } else {
         toast.error("תשובה שגויה, נסו שוב");
       }
@@ -291,6 +300,8 @@ export default function TaskScreen() {
                 currentStation.taskImageUrl ? (
                   <SlidingPuzzle
                     imageUrl={currentStation.taskImageUrl}
+                    initiallySolved={alreadySolved}
+                    onCompleted={() => markMissionSolved(teamId, stationKey)}
                     onSolved={() => reportCompletion("puzzle")}
                   />
                 ) : (

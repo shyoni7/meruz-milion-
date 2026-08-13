@@ -40,20 +40,36 @@ function shuffled(): number[] {
 interface SlidingPuzzleProps {
   imageUrl: string;
   onSolved: () => void;
+  /** Start already solved (e.g. the team solved it earlier and came back) */
+  initiallySolved?: boolean;
+  /** Fired once, the moment the tiles reach the solved order */
+  onCompleted?: () => void;
 }
 
-export default function SlidingPuzzle({ imageUrl, onSolved }: SlidingPuzzleProps) {
-  const [board, setBoard] = useState<number[]>(() => shuffled());
-  const [solved, setSolved] = useState(false);
+export default function SlidingPuzzle({
+  imageUrl,
+  onSolved,
+  initiallySolved = false,
+  onCompleted,
+}: SlidingPuzzleProps) {
+  const [board, setBoard] = useState<number[]>(() =>
+    initiallySolved ? Array.from({ length: SIZE * SIZE }, (_, i) => i) : shuffled()
+  );
+  const [solved, setSolved] = useState(initiallySolved);
   const onSolvedRef = useRef(onSolved);
   onSolvedRef.current = onSolved;
+  const onCompletedRef = useRef(onCompleted);
+  onCompletedRef.current = onCompleted;
 
   const isSolved = useMemo(() => board.every((tile, i) => tile === i), [board]);
 
   // No auto-advance — solving reveals the full image and a continue button.
   useEffect(() => {
-    if (isSolved) setSolved(true);
-  }, [isSolved]);
+    if (isSolved && !solved) {
+      setSolved(true);
+      onCompletedRef.current?.();
+    }
+  }, [isSolved, solved]);
 
   const handleTap = (pos: number) => {
     if (solved) return;
